@@ -43,20 +43,55 @@ def leer_datos(pestana):
     try: return conn.read(worksheet=pestana, ttl=0)
     except: return pd.DataFrame()
 
-if 'auth' not in st.session_state: st.session_state.auth = False
+if 'auth' not in st.session_state: 
+    st.session_state.auth = False
 
 if not st.session_state.auth:
     st.title("🏎️ F1 Pro Predictor")
-    u = st.text_input("Usuario")
-    p = st.text_input("Contraseña", type="password")
-    if st.button("Entrar"):
-        df_u = leer_datos("Usuarios")
-        if not df_u.empty and u in df_u['Usuario'].values:
-            if str(p) == str(df_u[df_u['Usuario']==u]['Password'].values[0]):
-                st.session_state.auth, st.session_state.user = True, u
-                st.session_state.rol = df_u[df_u['Usuario']==u]['Rol'].values[0]
-                st.rerun()
-        st.error("Error de login")
+    
+    # Creamos dos pestañas: una para entrar y otra para registro
+    tab_login, tab_registro = st.tabs(["🔐 Entrar", "📝 Registrarse"])
+    
+    with tab_login:
+        with st.form("Login"):
+            u = st.text_input("Usuario")
+            p = st.text_input("Contraseña", type="password")
+            if st.form_submit_button("Entrar"):
+                df_u = leer_datos("Usuarios")
+                if not df_u.empty and u in df_u['Usuario'].values:
+                    pwd = str(df_u[df_u['Usuario']==u]['Password'].values[0])
+                    if p == pwd:
+                        st.session_state.auth, st.session_state.user = True, u
+                        st.session_state.rol = df_u[df_u['Usuario']==u]['Rol'].values[0]
+                        st.rerun()
+                st.error("Usuario o contraseña incorrectos")
+
+    with tab_registro:
+        with st.form("Registro"):
+            new_u = st.text_input("Elige nombre de usuario")
+            new_p = st.text_input("Elige contraseña", type="password")
+            confirm_p = st.text_input("Confirma contraseña", type="password")
+            
+            if st.form_submit_button("Crear cuenta"):
+                df_u = leer_datos("Usuarios")
+                
+                if not new_u or not new_p:
+                    st.warning("Rellena todos los campos")
+                elif new_p != confirm_p:
+                    st.error("Las contraseñas no coinciden")
+                elif not df_u.empty and new_u in df_u['Usuario'].values:
+                    st.error("El usuario ya existe")
+                else:
+                    # Crear el nuevo usuario
+                    nuevo_registro = pd.DataFrame([{"Usuario": new_u, "Password": new_p, "Rol": "user"}])
+                    
+                    # Si el DF original estaba vacío, lo creamos con columnas
+                    if df_u.empty:
+                        df_u = pd.DataFrame(columns=["Usuario", "Password", "Rol"])
+                    
+                    # Actualizar Google Sheets
+                    conn.update(worksheet="Usuarios", data=pd.concat([df_u, nuevo_registro], ignore_index=True))
+                    st.success("✅ ¡Registro completado! Ya puedes ir a la pestaña de Entrar.")
 else:
     # 4. CARGA DE DATOS Y DEFINICIÓN DE TABS
     df_p = leer_datos("Predicciones")
