@@ -17,6 +17,7 @@ EQUIPOS_2026 = sorted([
 ])
 
 FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 1, 10, 0)
+MUNDIAL_BLOQUEADO = datetime.now() > FECHA_LIMITE_TEMPORADA
 GPS = ["GP Bahrein", "GP Arabia Saudí", "GP Australia", "GP Japón", "GP China", "GP Miami", "GP Mónaco", "GP España"]
 
 # 2. FUNCIONES DE CÁLCULO
@@ -61,8 +62,6 @@ if 'auth' not in st.session_state:
 
 if not st.session_state.auth:
     st.title("🏎️ F1 Pro Predictor")
-    
-    # Creamos dos pestañas: una para entrar y otra para registro
     tab_login, tab_registro = st.tabs(["🔐 Entrar", "📝 Registrarse"])
     
     with tab_login:
@@ -84,27 +83,16 @@ if not st.session_state.auth:
             new_u = st.text_input("Elige nombre de usuario")
             new_p = st.text_input("Elige contraseña", type="password")
             confirm_p = st.text_input("Confirma contraseña", type="password")
-            
             if st.form_submit_button("Crear cuenta"):
                 df_u = leer_datos("Usuarios")
-                
-                if not new_u or not new_p:
-                    st.warning("Rellena todos los campos")
-                elif new_p != confirm_p:
-                    st.error("Las contraseñas no coinciden")
-                elif not df_u.empty and new_u in df_u['Usuario'].values:
-                    st.error("El usuario ya existe")
+                if not new_u or not new_p: st.warning("Rellena todos los campos")
+                elif new_p != confirm_p: st.error("Las contraseñas no coinciden")
+                elif not df_u.empty and new_u in df_u['Usuario'].values: st.error("El usuario ya existe")
                 else:
-                    # Crear el nuevo usuario
                     nuevo_registro = pd.DataFrame([{"Usuario": new_u, "Password": new_p, "Rol": "user"}])
-                    
-                    # Si el DF original estaba vacío, lo creamos con columnas
-                    if df_u.empty:
-                        df_u = pd.DataFrame(columns=["Usuario", "Password", "Rol"])
-                    
-                    # Actualizar Google Sheets
+                    if df_u.empty: df_u = pd.DataFrame(columns=["Usuario", "Password", "Rol"])
                     conn.update(worksheet="Usuarios", data=pd.concat([df_u, nuevo_registro], ignore_index=True))
-                    st.success("✅ ¡Registro completado! Ya puedes ir a la pestaña de Entrar.")
+                    st.success("✅ ¡Registro completado!")
 else:
     # 4. CARGA DE DATOS Y DEFINICIÓN DE TABS
     df_p = leer_datos("Predicciones")
@@ -112,108 +100,105 @@ else:
     
     st.sidebar.title(f"Piloto: {st.session_state.user}")
     gp_sel = st.sidebar.selectbox("Gran Premio", GPS)
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.auth = False
+        st.rerun()
     
-    # AQUÍ SE DEFINEN LAS TABS
+    # DEFINICIÓN DE LAS 4 TABS CORRECCIÓN AQUÍ
     tab1, tab2, tab3, tab4 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin"])
 
     with tab1:
         st.header(f"Tus predicciones - {gp_sel}")
         with st.form("apuestas"):
             c1, c2 = st.columns(2)
-            q = [c1.selectbox(f"Q{i+1}", PILOTOS, key=f"q{i}") for i in range(5)]
-            c = [c2.selectbox(f"C{i+1}", PILOTOS, key=f"c{i}") for i in range(5)]
-            al = st.number_input("Pos. Alonso", 1, 20, 10)
-            sa = st.number_input("Pos. Sainz", 1, 20, 5)
+            q = [c1.selectbox(f"Q{i+1}", PILOTOS_2026, key=f"q{i}") for i in range(5)]
+            c = [c2.selectbox(f"C{i+1}", PILOTOS_2026, key=f"c{i}") for i in range(5)]
+            al = st.number_input("Pos. Alonso", 1, 22, 14)
+            sa = st.number_input("Pos. Sainz Jr.", 1, 22, 5)
             sf = st.selectbox("Safety Car", ["SI", "NO"])
             rf = st.selectbox("Bandera Roja", ["SI", "NO"])
-            dnf = st.number_input("Nº Abandonos", 0, 20, 2)
-            dotd = st.selectbox("Piloto del Día", PILOTOS)
             if st.form_submit_button("Guardar"):
-                nuevas = []
-                for i, v in enumerate(q): nuevas.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
-                for i, v in enumerate(c): nuevas.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
-                nuevas.extend([{"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": str(al)},
-                               {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": str(sa)},
-                               {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": sf},
-                               {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": rf},
-                               {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "DNF", "Valor": str(dnf)},
-                               {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "DOTD", "Valor": dotd}])
-                df_p = df_p[~((df_p['Usuario']==st.session_state.user) & (df_p['GP']==gp_sel))]
-                conn.update(worksheet="Predicciones", data=pd.concat([df_p, pd.DataFrame(nuevas)]))
+                data = []
+                for i, v in enumerate(q): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
+                for i, v in enumerate(c): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
+                data.extend([{"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": str(al)},
+                             {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": str(sa)},
+                             {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": sf},
+                             {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": rf}])
+                df_p = pd.concat([df_p[~((df_p['Usuario']==st.session_state.user) & (df_p['GP']==gp_sel))], pd.DataFrame(data)])
+                conn.update(worksheet="Predicciones", data=df_p)
                 st.success("Guardado")
 
     with tab2:
         st.header("🏆 Ranking General")
-        usuarios = leer_datos("Usuarios")['Usuario'].unique()
+        df_u_rank = leer_datos("Usuarios")
         ranking = []
-        for user in usuarios:
+        for user in df_u_rank['Usuario'].unique():
             pts = sum([calcular_puntos_gp(df_p[(df_p['Usuario']==user) & (df_p['GP']==g)], df_r[df_r['GP']==g]) for g in GPS])
             ranking.append({"Piloto": user, "Puntos": pts})
         st.table(pd.DataFrame(ranking).sort_values("Puntos", ascending=False))
 
-    with tab4:
-        if st.session_state.rol == 'admin':
-            with st.form("admin"):
-                rq = [st.selectbox(f"Q{i+1} Real", PILOTOS) for i in range(5)]
-                rc = [st.selectbox(f"C{i+1} Real", PILOTOS) for i in range(5)]
-                if st.form_submit_button("Publicar"):
-                    res = []
-                    for i, v in enumerate(rq): res.append({"GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
-                    for i, v in enumerate(rc): res.append({"GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
-                    # (Añadir aquí el resto de variables como Alonso, Sainz, etc. igual que arriba)
-                    df_r = df_r[df_r['GP'] != gp_sel]
-                    conn.update(worksheet="Resultados", data=pd.concat([df_r, pd.DataFrame(res)]))
-                    st.success("OK")
-with tab3: # NUEVA PESTAÑA MUNDIAL
-    st.header("🏆 Predicciones de Temporada 2026")
-    st.info("Estas apuestas se cierran antes de la primera carrera y valen para el final del campeonato.")
-    
-    # Cargar datos previos de la pestaña Temporada
-    df_temp = leer_datos("Temporada")
-    
-    with st.form("form_temporada"):
-        col_p, col_e = st.columns(2)
-        
-        with col_p:
-            st.subheader("🔝 Top 22 Pilotos")
-            pred_p = []
-            for i in range(22):
-                # Buscar si ya tiene algo guardado
-                val_prev = "-"
-                if not df_temp.empty:
-                    match = df_temp[(df_temp['Usuario'] == st.session_state.user) & (df_temp['Variable'] == f"P{i+1}")]
-                    if not match.empty: val_prev = match.iloc[0]['Valor']
-                
-                idx = PILOTOS_2026.index(val_prev) if val_prev in PILOTOS_2026 else 0
-                p = st.selectbox(f"Posición {i+1}", PILOTOS_2026, index=idx, key=f"temp_p{i}", disabled=MUNDIAL_BLOQUEADO)
-                pred_p.append(p)
-        
-        with col_e:
-            st.subheader("🏭 Top 11 Constructores")
-            pred_e = []
-            for i in range(11):
-                val_prev = "-"
-                if not df_temp.empty:
-                    match = df_temp[(df_temp['Usuario'] == st.session_state.user) & (df_temp['Variable'] == f"E{i+1}")]
-                    if not match.empty: val_prev = match.iloc[0]['Valor']
-                
-                idx = EQUIPOS_2026.index(val_prev) if val_prev in EQUIPOS_2026 else 0
-                e = st.selectbox(f"Posición {i+1}", EQUIPOS_2026, index=idx, key=f"temp_e{i}", disabled=MUNDIAL_BLOQUEADO)
-                pred_e.append(e)
+    with tab3: # PESTAÑA MUNDIAL (DENTRO DEL ELSE)
+        st.header("🏆 Predicciones de Temporada 2026")
+        if MUNDIAL_BLOQUEADO: st.warning("Las apuestas de temporada están cerradas.")
+        df_temp = leer_datos("Temporada")
+        with st.form("form_temporada"):
+            col_p, col_e = st.columns(2)
+            with col_p:
+                st.subheader("🔝 Top 22 Pilotos")
+                pred_p = []
+                for i in range(22):
+                    val_prev = PILOTOS_2026[0]
+                    if not df_temp.empty:
+                        match = df_temp[(df_temp['Usuario'] == st.session_state.user) & (df_temp['Variable'] == f"P{i+1}")]
+                        if not match.empty: val_prev = match.iloc[0]['Valor']
+                    idx = PILOTOS_2026.index(val_prev) if val_prev in PILOTOS_2026 else 0
+                    p = st.selectbox(f"P{i+1}", PILOTOS_2026, index=idx, key=f"temp_p{i}", disabled=MUNDIAL_BLOQUEADO)
+                    pred_p.append(p)
+            with col_e:
+                st.subheader("🏭 Top 11 Constructores")
+                pred_e = []
+                for i in range(11):
+                    val_prev = EQUIPOS_2026[0]
+                    if not df_temp.empty:
+                        match = df_temp[(df_temp['Usuario'] == st.session_state.user) & (df_temp['Variable'] == f"E{i+1}")]
+                        if not match.empty: val_prev = match.iloc[0]['Valor']
+                    idx = EQUIPOS_2026.index(val_prev) if val_prev in EQUIPOS_2026 else 0
+                    e = st.selectbox(f"E{i+1}", EQUIPOS_2026, index=idx, key=f"temp_e{i}", disabled=MUNDIAL_BLOQUEADO)
+                    pred_e.append(e)
 
-        if st.form_submit_button("💾 Guardar Mundial", disabled=MUNDIAL_BLOQUEADO):
-            # Verificar que no haya pilotos repetidos
-            if len(set(pred_p)) < 22:
-                st.error("⚠️ Has repetido algún piloto en tu lista.")
-            elif len(set(pred_e)) < 11:
-                st.error("⚠️ Has repetido alguna escudería.")
-            else:
-                # Guardar datos
-                nuevas_temp = []
-                for i, v in enumerate(pred_p): nuevas_temp.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
-                for i, v in enumerate(pred_e): nuevas_temp.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
-                
-                # Filtrar otros usuarios y guardar
-                df_otros = df_temp[df_temp['Usuario'] != st.session_state.user] if not df_temp.empty else pd.DataFrame()
-                conn.update(worksheet="Temporada", data=pd.concat([df_otros, pd.DataFrame(nuevas_temp)]))
-                st.success("✅ Predicciones de temporada guardadas.")
+            if st.form_submit_button("💾 Guardar Mundial", disabled=MUNDIAL_BLOQUEADO):
+                if len(set(pred_p)) < 22 or len(set(pred_e)) < 11:
+                    st.error("⚠️ No puedes repetir pilotos o escuderías.")
+                else:
+                    nuevas_temp = []
+                    for i, v in enumerate(pred_p): nuevas_temp.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
+                    for i, v in enumerate(pred_e): nuevas_temp.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
+                    df_temp = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(nuevas_temp)])
+                    conn.update(worksheet="Temporada", data=df_temp)
+                    st.success("✅ Mundial guardado.")
+
+    with tab4: # ADMIN
+        if st.session_state.rol == 'admin':
+            st.header("🔧 Panel de Administración")
+            with st.form("admin"):
+                st.subheader(f"Resultados Reales {gp_sel}")
+                aq = [st.selectbox(f"Q{i+1} Real", PILOTOS_2026, key=f"rq{i}") for i in range(5)]
+                ac = [st.selectbox(f"C{i+1} Real", PILOTOS_2026, key=f"rc{i}") for i in range(5)]
+                aal = st.number_input("Alonso Real", 1, 22)
+                asa = st.number_input("Sainz Real", 1, 22)
+                asf = st.selectbox("SC Real", ["SI", "NO"])
+                arf = st.selectbox("RF Real", ["SI", "NO"])
+                if st.form_submit_button("Publicar Resultados"):
+                    res = []
+                    for i, v in enumerate(aq): res.append({"GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
+                    for i, v in enumerate(ac): res.append({"GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
+                    res.extend([{"GP": gp_sel, "Variable": "Alonso", "Valor": str(aal)},
+                                {"GP": gp_sel, "Variable": "Sainz", "Valor": str(asa)},
+                                {"GP": gp_sel, "Variable": "Safety", "Valor": asf},
+                                {"GP": gp_sel, "Variable": "RedFlag", "Valor": arf}])
+                    df_r = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(res)])
+                    conn.update(worksheet="Resultados", data=df_r)
+                    st.success("Resultados actualizados")
+        else:
+            st.warning("No tienes permisos de administrador.")
