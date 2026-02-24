@@ -3,7 +3,19 @@ import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
 # 1. CONFIGURACIONES
-PILOTOS = sorted(["Verstappen", "Perez", "Hamilton", "Russell", "Leclerc", "Sainz", "Norris", "Piastri", "Alonso", "Stroll", "Gasly", "Ocon", "Albon", "Colapinto", "Hulkenberg", "Bearman", "Tsunoda", "Lawson", "Bottas", "Zhou"])
+PILOTOS_2026 = sorted([
+    "Norris", "Piastri", "Antonelli", "Russell", "Verstappen", "Hadjar",
+    "Leclerc", "Hamilton", "Albon", "Sainz Jr.", "Lawson", "Lindblad",
+    "Alonso", "Stroll", "Ocon", "Bearman", "Bortoleto", "Hülkenberg",
+    "Gasly", "Colapinto", "Perez", "Bottas"
+])
+
+EQUIPOS_2026 = sorted([
+    "McLaren", "Mercedes", "Red Bull", "Ferrari", "Williams", 
+    "Racing Bulls", "Aston Martin", "Haas", "Audi", "Alpine", "Cadillac"
+])
+
+FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 1, 10, 0)
 GPS = ["GP Bahrein", "GP Arabia Saudí", "GP Australia", "GP Japón", "GP China", "GP Miami", "GP Mónaco", "GP España"]
 
 # 2. FUNCIONES DE CÁLCULO
@@ -151,3 +163,56 @@ else:
                     df_r = df_r[df_r['GP'] != gp_sel]
                     conn.update(worksheet="Resultados", data=pd.concat([df_r, pd.DataFrame(res)]))
                     st.success("OK")
+with tab4: # NUEVA PESTAÑA MUNDIAL
+    st.header("🏆 Predicciones de Temporada 2026")
+    st.info("Estas apuestas se cierran antes de la primera carrera y valen para el final del campeonato.")
+    
+    # Cargar datos previos de la pestaña Temporada
+    df_temp = leer_datos("Temporada")
+    
+    with st.form("form_temporada"):
+        col_p, col_e = st.columns(2)
+        
+        with col_p:
+            st.subheader("🔝 Top 22 Pilotos")
+            pred_p = []
+            for i in range(22):
+                # Buscar si ya tiene algo guardado
+                val_prev = "-"
+                if not df_temp.empty:
+                    match = df_temp[(df_temp['Usuario'] == st.session_state.user) & (df_temp['Variable'] == f"P{i+1}")]
+                    if not match.empty: val_prev = match.iloc[0]['Valor']
+                
+                idx = PILOTOS_2026.index(val_prev) if val_prev in PILOTOS_2026 else 0
+                p = st.selectbox(f"Posición {i+1}", PILOTOS_2026, index=idx, key=f"temp_p{i}", disabled=MUNDIAL_BLOQUEADO)
+                pred_p.append(p)
+        
+        with col_e:
+            st.subheader("🏭 Top 11 Constructores")
+            pred_e = []
+            for i in range(11):
+                val_prev = "-"
+                if not df_temp.empty:
+                    match = df_temp[(df_temp['Usuario'] == st.session_state.user) & (df_temp['Variable'] == f"E{i+1}")]
+                    if not match.empty: val_prev = match.iloc[0]['Valor']
+                
+                idx = EQUIPOS_2026.index(val_prev) if val_prev in EQUIPOS_2026 else 0
+                e = st.selectbox(f"Posición {i+1}", EQUIPOS_2026, index=idx, key=f"temp_e{i}", disabled=MUNDIAL_BLOQUEADO)
+                pred_e.append(e)
+
+        if st.form_submit_button("💾 Guardar Mundial", disabled=MUNDIAL_BLOQUEADO):
+            # Verificar que no haya pilotos repetidos
+            if len(set(pred_p)) < 22:
+                st.error("⚠️ Has repetido algún piloto en tu lista.")
+            elif len(set(pred_e)) < 11:
+                st.error("⚠️ Has repetido alguna escudería.")
+            else:
+                # Guardar datos
+                nuevas_temp = []
+                for i, v in enumerate(pred_p): nuevas_temp.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
+                for i, v in enumerate(pred_e): nuevas_temp.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
+                
+                # Filtrar otros usuarios y guardar
+                df_otros = df_temp[df_temp['Usuario'] != st.session_state.user] if not df_temp.empty else pd.DataFrame()
+                conn.update(worksheet="Temporada", data=pd.concat([df_otros, pd.DataFrame(nuevas_temp)]))
+                st.success("✅ Predicciones de temporada guardadas.")
