@@ -119,6 +119,7 @@ else:
     # 1. Definimos las listas con la opción neutra para la interfaz
     # Listas de opciones con el valor neutro
     OPCIONES_PILOTOS = ["- Seleccionar -"] + PILOTOS_2026
+    OPCIONES_EQUIPOS = ["- Seleccionar -"] + EQUIPOS_2026
     OPCIONES_BINARIAS = ["- Seleccionar -", "SI", "NO"]
     # Para Alonso y Sainz: Seleccionar, DNF (No acabó) o posiciones del 1 al 22
     POSICIONES_CARRERA = ["- Seleccionar -", "DNF"] + [str(i) for i in range(1, 23)]
