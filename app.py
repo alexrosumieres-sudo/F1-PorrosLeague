@@ -48,34 +48,6 @@ GPS = [
 FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 8, 5, 0)
 MUNDIAL_BLOQUEADO = datetime.now() > FECHA_LIMITE_TEMPORADA
 # 2. FUNCIONES DE CÁLCULO
-def calcular_puntos_gp(u_preds, gp_results):
-    pts = 0.0
-    if u_preds.empty or gp_results.empty: return 0.0
-    real_q = gp_results[gp_results['Variable'].str.contains('Q')].sort_values('Variable')['Valor'].tolist()
-    real_c = gp_results[gp_results['Variable'].str.contains('C')].sort_values('Variable')['Valor'].tolist()
-    for _, row in u_preds.iterrows():
-        var, val_p = row['Variable'], row['Valor']
-        res_row = gp_results[gp_results['Variable'] == var]
-        if res_row.empty: continue
-        val_r = res_row.iloc[0]['Valor']
-        if var.startswith('Q') or var.startswith('C'):
-            lista_real = real_q if var.startswith('Q') else real_c
-            try:
-                pos_pred = int(var[1:])
-                if val_p == val_r: pts += 2.0
-                elif val_p in lista_real:
-                    pos_real = lista_real.index(val_p) + 1
-                    pts += 1.5 if abs(pos_pred - pos_real) == 1 else 0.5
-            except: pass
-        elif var in ['Alonso', 'Sainz']:
-            try:
-                if int(val_p) == int(val_r): pts += 1.0
-                elif abs(int(val_p) - int(val_r)) == 1: pts += 0.5
-            except: pass
-        elif var in ['Safety', 'RedFlag', 'DNF', 'DOTD']:
-            if str(val_p).lower() == str(val_r).lower(): pts += 2.0
-    return pts
-
 def calcular_puntos_gp(u_preds, gp_results, detalle=False):
     pts = 0.0
     desglose = {"Qualy": 0.0, "Sprint": 0.0, "Carrera": 0.0, "Extras": 0.0}
@@ -95,9 +67,15 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
         
         puntos_esta_var = 0.0
         
-        # Lógica para Qualy (Q), Sprint (S) y Carrera (C)
-        if var[0] in ['Q', 'S', 'C']:
-            lista_real = real_q if var[0] == 'Q' else (real_s if var[0] == 'S' else real_c)
+        # --- LÓGICA SPRINT (NUEVA: 1pt si es exacta, 0 si no) ---
+        if var.startswith('S'):
+            if val_p == val_r:
+                puntos_esta_var = 1.0
+            desglose["Sprint"] += puntos_esta_var
+
+        # --- LÓGICA QUALY Y CARRERA (Top 5: 2.0, 1.5 o 0.5) ---
+        elif var.startswith('Q') or var.startswith('C'):
+            lista_real = real_q if var.startswith('Q') else real_c
             try:
                 pos_pred = int(var[1:])
                 if val_p == val_r: 
@@ -108,9 +86,9 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
             except: pass
             
             if var.startswith('Q'): desglose["Qualy"] += puntos_esta_var
-            elif var.startswith('S'): desglose["Sprint"] += puntos_esta_var
             else: desglose["Carrera"] += puntos_esta_var
             
+        # --- LÓGICA ESPAÑOLES (1.0 o 0.5) ---
         elif var in ['Alonso', 'Sainz']:
             try:
                 if str(val_p) == str(val_r): puntos_esta_var = 1.0
@@ -118,6 +96,8 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
                     puntos_esta_var = 0.5
             except: pass
             desglose["Extras"] += puntos_esta_var
+
+        # --- LÓGICA CAOS (2.0 si acierta) ---
         elif var in ['Safety', 'RedFlag']:
             if str(val_p).lower() == str(val_r).lower(): puntos_esta_var = 2.0
             desglose["Extras"] += puntos_esta_var
