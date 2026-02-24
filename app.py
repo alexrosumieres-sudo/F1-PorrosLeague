@@ -106,6 +106,36 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
 
     return desglose if detalle else pts
 
+def calcular_puntos_mundial(u_preds_temp, mundial_results):
+    pts = 0.0
+    if u_preds_temp.empty or mundial_results.empty:
+        return 0.0
+    
+    for _, row in u_preds_temp.iterrows():
+        var, val_p = row['Variable'], row['Valor']
+        res_row = mundial_results[mundial_results['Variable'] == var]
+        if res_row.empty: continue
+        val_r = res_row.iloc[0]['Valor']
+        
+        # Obtenemos la lista real completa (Pilotos o Equipos) para calcular distancias
+        tipo = "P" if var.startswith('P') else "E"
+        lista_real = mundial_results[mundial_results['Variable'].str.startswith(tipo)].sort_values('Variable')['Valor'].tolist()
+        
+        try:
+            pos_pred = int(var[1:])
+            if val_p == val_r:
+                pts += 5.0 # Exacto
+            elif val_p in lista_real:
+                pos_real = lista_real.index(val_p) + 1
+                distancia = abs(pos_pred - pos_real)
+                
+                if distancia == 1:
+                    pts += 2.0 # Error de 1
+                elif distancia == 2 and tipo == "P":
+                    pts += 1.0 # Error de 2 (solo en pilotos)
+        except: pass
+    return pts
+
 
 # 3. INTERFAZ Y LOGIN
 st.set_page_config(page_title="F1 Porra 2026", page_icon="🏎️", layout="wide")
@@ -286,21 +316,39 @@ else:
         if not df_u_rank.empty:
             participantes = df_u_rank[df_u_rank['Rol'] == 'user']['Usuario'].unique()
             ranking_list, evolution_data = [], []
+            
             for u in participantes:
-                p_acum = 0
+                # 1. Puntos de GPs
+                p_gps = 0.0
                 for g in GPS:
                     pts_gp = calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g])
-                    p_acum += pts_gp
-                    evolution_data.append({"Usuario": u, "GP": g[:3], "Puntos": p_acum})
-                ranking_list.append({"Piloto": u, "Puntos": p_acum})
+                    p_gps += pts_gp
+                    evolution_data.append({"Usuario": u, "GP": g[:3], "Puntos": p_gps})
+                
+                # 2. Puntos del Mundial Final
+                pts_mundial = calcular_puntos_mundial(df_temp[df_temp['Usuario']==u], df_r_mundial)
+                
+                total_final = p_gps + pts_mundial
+                ranking_list.append({
+                    "Piloto": u, 
+                    "Puntos GPs": p_gps, 
+                    "Bonus Mundial": pts_mundial, 
+                    "Puntos TOTALES": total_final
+                })
             
+            # Gráfico de Evolución (Solo de los GPs)
+            st.subheader("📈 Evolución en Carreras")
             st.line_chart(pd.DataFrame(evolution_data).pivot(index="GP", columns="Usuario", values="Puntos"))
-            df_f = pd.DataFrame(ranking_list).sort_values("Puntos", ascending=False)
+            
+            # Tabla Final
+            st.subheader("🏁 Tabla de Puntuación")
+            df_f = pd.DataFrame(ranking_list).sort_values("Puntos TOTALES", ascending=False)
             df_f.insert(0, "Pos", range(1, len(df_f) + 1))
             st.dataframe(df_f, use_container_width=True, hide_index=True)
 
+            # Desglose de Historial igual que antes...
             st.divider()
-            st.subheader("🧐 Historial Detallado")
+            st.subheader("🧐 Historial Detallado por GP")
             col_u, col_g = st.columns(2)
             u_v = col_u.selectbox("Piloto", participantes, key="hist_u")
             g_v = col_g.selectbox("Gran Premio", GPS, key="hist_g")
