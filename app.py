@@ -97,6 +97,17 @@ else:
     # 4. CARGA DE DATOS Y DEFINICIÓN DE TABS
     df_p = leer_datos("Predicciones")
     df_r = leer_datos("Resultados")
+    df_temp = leer_datos("Temporada") # <--- CARGA DE LA TABLA QUE FALTABA
+    
+    # Blindaje: Si las hojas están vacías, creamos DataFrames con columnas mínimas
+    if df_p.empty: df_p = pd.DataFrame(columns=['Usuario', 'GP', 'Variable', 'Valor'])
+    if df_r.empty: df_r = pd.DataFrame(columns=['GP', 'Variable', 'Valor'])
+    if df_temp.empty: df_temp = pd.DataFrame(columns=['Usuario', 'Variable', 'Valor'])
+    
+    # Limpieza: quitamos espacios raros en los nombres de las columnas
+    df_p.columns = df_p.columns.str.strip()
+    df_r.columns = df_r.columns.str.strip()
+    df_temp.columns = df_temp.columns.str.strip()
     
     st.sidebar.title(f"Piloto: {st.session_state.user}")
     gp_sel = st.sidebar.selectbox("Gran Premio", GPS)
@@ -104,8 +115,6 @@ else:
         st.session_state.auth = False
         st.rerun()
     
-    # DEFINICIÓN DE LAS 4 TABS CORRECCIÓN AQUÍ
-    # Definición de las 4 pestañas principales
     # Definición de las 4 pestañas principales
     tab1, tab2, tab3, tab4 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin"])
 
@@ -145,8 +154,10 @@ else:
                 c3, c4 = st.columns(2)
                 with c3:
                     st.subheader("🇪🇸 Españoles")
-                    val_alo = int(get_val("Alonso", 14))
-                    val_sai = int(get_val("Sainz", 5))
+                    try: val_alo = int(get_val("Alonso", 14))
+                    except: val_alo = 14
+                    try: val_sai = int(get_val("Sainz", 5))
+                    except: val_sai = 5
                     alo = st.number_input("Pos. Alonso", 1, 22, val_alo)
                     sai = st.number_input("Pos. Sainz Jr.", 1, 22, val_sai)
                 with c4:
@@ -172,7 +183,7 @@ else:
 
     with tab2:
         st.header("📊 Clasificación General")
-        df_u_rank = leer_datos("Usuarios") # CORREGIDO: Sin el conn
+        df_u_rank = leer_datos("Usuarios")
         if not df_u_rank.empty:
             participantes = df_u_rank[df_u_rank['Rol'] != 'admin']['Usuario'].unique()
             ranking = []
@@ -190,6 +201,7 @@ else:
         if MUNDIAL_BLOQUEADO:
             st.warning("🔒 Las apuestas de temporada están cerradas.")
         
+        # Filtramos las de este usuario
         df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
         
         with st.form("form_temporada"):
@@ -200,9 +212,8 @@ else:
                 pred_p = []
                 for i in range(22):
                     match_p = df_u_temp[df_u_temp['Variable'] == f"P{i+1}"]
-                    # Si no hay guardado, sugerimos por defecto la lista 2026 en orden
                     default_p = match_p.iloc[0]['Valor'] if not match_p.empty else PILOTOS_2026[i]
-                    p_sel = st.selectbox(f"P{i+1}", PILOTOS_2026, index=PILOTOS_2026.index(default_p), key=f"tp_{i}", disabled=MUNDIAL_BLOQUEADO)
+                    p_sel = st.selectbox(f"P{i+1}", PILOTOS_2026, index=PILOTOS_2026.index(default_p) if default_p in PILOTOS_2026 else 0, key=f"tp_{i}", disabled=MUNDIAL_BLOQUEADO)
                     pred_p.append(p_sel)
 
             with col_equ:
@@ -211,7 +222,7 @@ else:
                 for i in range(11):
                     match_e = df_u_temp[df_u_temp['Variable'] == f"E{i+1}"]
                     default_e = match_e.iloc[0]['Valor'] if not match_e.empty else EQUIPOS_2026[i]
-                    e_sel = st.selectbox(f"E{i+1}", EQUIPOS_2026, index=EQUIPOS_2026.index(default_e), key=f"te_{i}", disabled=MUNDIAL_BLOQUEADO)
+                    e_sel = st.selectbox(f"E{i+1}", EQUIPOS_2026, index=EQUIPOS_2026.index(default_e) if default_e in EQUIPOS_2026 else 0, key=f"te_{i}", disabled=MUNDIAL_BLOQUEADO)
                     pred_e.append(e_sel)
 
             if st.form_submit_button("💾 Guardar Mundial", disabled=MUNDIAL_BLOQUEADO):
@@ -256,4 +267,3 @@ else:
                     st.success("🏁 Resultados publicados.")
         else:
             st.error("⛔ Sección restringida.")
-    
