@@ -179,27 +179,33 @@ else:
     df_cal = leer_datos("Calendario")
     df_r_mundial = leer_datos("ResultadosMundial")
 
+    # Constante de GPs con formato Sprint
     SPRINT_GPS = ["02. GP de China", "06. GP de Miami", "07. GP de Canadá", "11. GP de Gran Bretaña", "14. GP de los Países Bajos", "18. GP de Singapur"]
 
-    # Blindaje de datos
+    # Blindaje de datos y columnas
     if df_p.empty: df_p = pd.DataFrame(columns=['Usuario', 'GP', 'Variable', 'Valor'])
     if df_r.empty: df_r = pd.DataFrame(columns=['GP', 'Variable', 'Valor'])
+    if df_temp.empty: df_temp = pd.DataFrame(columns=['Usuario', 'Variable', 'Valor'])
     if df_cal.empty: df_cal = pd.DataFrame(columns=['GP', 'LimiteQualy', 'LimiteSprint', 'LimiteCarrera'])
     
     df_p.columns = df_p.columns.str.strip()
+    df_r.columns = df_r.columns.str.strip()
+    df_temp.columns = df_temp.columns.str.strip()
     df_cal.columns = df_cal.columns.str.strip()
 
-    # --- LÓGICA DE BLOQUEO TRIPLE ---
+    # --- LÓGICA DE SELECCIÓN Y BLOQUEO ---
     st.sidebar.title(f"Piloto: {st.session_state.user}")
-    gp_sel = st.sidebar.selectbox("Seleccionar Gran Premio", GPS)
+    gp_sel = st.sidebar.selectbox("Gran Premio", GPS)
+    
+    # Definimos es_sprint aquí arriba para que esté disponible en TODA la app (Evita NameError)
+    es_sprint = gp_sel in SPRINT_GPS
     
     cal_row = df_cal[df_cal['GP'] == gp_sel]
     now = datetime.now()
 
-    # Inicializamos bloqueos por defecto (abiertos)
+    # Inicializamos bloqueos
     q_bloq, s_bloq, c_bloq = False, False, False
-    q_lim, s_lim, c_lim = None, None, None
-
+    
     if not cal_row.empty:
         q_lim = pd.to_datetime(cal_row.iloc[0]['LimiteQualy'])
         c_lim = pd.to_datetime(cal_row.iloc[0]['LimiteCarrera'])
@@ -208,7 +214,7 @@ else:
         
         st.sidebar.markdown(f"**⏱️ Qualy:** {'🔴 Cerrada' if q_bloq else f'🟢 hasta {q_lim.strftime('%H:%M (%d/%m)')}'}")
         
-        if gp_sel in SPRINT_GPS:
+        if es_sprint:
             s_lim = pd.to_datetime(cal_row.iloc[0]['LimiteSprint'])
             s_bloq = now > s_lim
             st.sidebar.markdown(f"**🏎️ Sprint:** {'🔴 Cerrada' if s_bloq else f'🟢 hasta {s_lim.strftime('%H:%M (%d/%m)')}'}")
@@ -227,77 +233,72 @@ else:
     OPCIONES_BINARIAS = ["- Seleccionar -", "SI", "NO"]
     POSICIONES_CARRERA = ["- Seleccionar -", "DNF"] + [str(i) for i in range(1, 23)]
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["✍️ Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin", "🔍 El Muro"])
+    # Definición de las 5 pestañas principales
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin", "🔍 El Muro"])
 
     with tab1:
         st.header(f"✍️ Predicciones - {gp_sel}")
         if st.session_state.rol == 'admin':
-            st.warning("Los administradores no apuestan.")
+            st.warning("⚠️ Los administradores no participan en las apuestas.")
         else:
             user_gp_preds = df_p[(df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel)]
             def get_val(var):
                 match = user_gp_preds[user_gp_preds['Variable'] == var]
                 return match.iloc[0]['Valor'] if not match.empty else "- Seleccionar -"
 
-            with st.form("form_gp_complejo"):
-                # SECCIÓN QUALY
+            with st.form("form_gp_global"):
+                # QUALY
                 st.subheader("⏱️ Clasificación (Top 5)")
-                if q_bloq: st.caption("🔒 Bloqueado")
-                c1, c2, c3, c4, c5 = st.columns(5)
-                q_res = [
-                    c1.selectbox("P1 Q", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val("Q1")), disabled=q_bloq),
-                    c2.selectbox("P2 Q", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val("Q2")), disabled=q_bloq),
-                    c3.selectbox("P3 Q", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val("Q3")), disabled=q_bloq),
-                    c4.selectbox("P4 Q", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val("Q4")), disabled=q_bloq),
-                    c5.selectbox("P5 Q", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val("Q5")), disabled=q_bloq)
-                ]
+                if q_bloq: st.caption("🔒 Sección bloqueada")
+                cq = st.columns(5)
+                q_res = [cq[i].selectbox(f"P{i+1} Q", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val(f"Q{i+1}")), key=f"q_u_{i}", disabled=q_bloq) for i in range(5)]
 
-                # SECCIÓN SPRINT
+                # SPRINT
                 s_res = []
-                if gp_sel in SPRINT_GPS:
+                if es_sprint:
                     st.divider()
                     st.subheader("🏎️ Carrera Sprint (Top 3)")
-                    if s_bloq: st.caption("🔒 Bloqueado")
-                    cs1, cs2, cs3 = st.columns(3)
-                    s_res = [
-                        cs1.selectbox("P1 Sprint", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val("S1")), disabled=s_bloq),
-                        cs2.selectbox("P2 Sprint", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val("S2")), disabled=s_bloq),
-                        cs3.selectbox("P3 Sprint", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val("S3")), disabled=s_bloq)
-                    ]
+                    if s_bloq: st.caption("🔒 Sección bloqueada")
+                    cs = st.columns(3)
+                    s_res = [cs[i].selectbox(f"P{i+1} S", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val(f"S{i+1}")), key=f"s_u_{i}", disabled=s_bloq) for i in range(3)]
 
-                # SECCIÓN CARRERA
+                # CARRERA
                 st.divider()
-                st.subheader("🏁 Carrera Principal y Extras")
-                if c_bloq: st.caption("🔒 Bloqueado")
+                st.subheader("🏁 Carrera y Extras")
+                if c_bloq: st.caption("🔒 Sección bloqueada")
                 cc1, cc2 = st.columns(2)
                 with cc1:
-                    c_res = [st.selectbox(f"P{i+1} Carrera", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val(f"C{i+1}")), key=f"cr{i}", disabled=c_bloq) for i in range(5)]
+                    c_res = [st.selectbox(f"P{i+1} Carrera", OPCIONES_PILOTOS, index=OPCIONES_PILOTOS.index(get_val(f"C{i+1}")), key=f"c_u_{i}", disabled=c_bloq) for i in range(5)]
                 with cc2:
                     alo = st.selectbox("Pos. Alonso", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Alonso")), disabled=c_bloq)
                     sai = st.selectbox("Pos. Sainz Jr.", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Sainz")), disabled=c_bloq)
                     saf = st.selectbox("¿Safety Car?", OPCIONES_BINARIAS, index=OPCIONES_BINARIAS.index(get_val("Safety")), disabled=c_bloq)
                     red = st.selectbox("¿Bandera Roja?", OPCIONES_BINARIAS, index=OPCIONES_BINARIAS.index(get_val("RedFlag")), disabled=c_bloq)
 
-                boton_bloqueado = q_bloq and (s_bloq if gp_sel in SPRINT_GPS else True) and c_bloq
-                if st.form_submit_button("💾 Guardar Cambios", disabled=boton_bloqueado):
-                    todas = q_res + s_res + c_res + [alo, sai, saf, red]
-                    if "- Seleccionar -" in todas:
-                        st.error("⚠️ No puedes dejar campos vacíos en las secciones abiertas.")
+                enviar_bloqueado = q_bloq and (s_bloq if es_sprint else True) and c_bloq
+                if st.form_submit_button("💾 Guardar Todo", disabled=enviar_bloqueado):
+                    # Solo validamos lo que está abierto
+                    campos_a_validar = []
+                    if not q_bloq: campos_a_validar += q_res
+                    if es_sprint and not s_bloq: campos_a_validar += s_res
+                    if not c_bloq: campos_a_validar += c_res + [alo, sai, saf, red]
+                    
+                    if "- Seleccionar -" in campos_a_validar:
+                        st.error("⚠️ Por favor, rellena todos los campos de las secciones abiertas.")
                     else:
-                        # Preparamos datos (mantenemos lo bloqueado y actualizamos lo abierto)
-                        new_data = []
-                        for i, v in enumerate(q_res): new_data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
-                        for i, v in enumerate(s_res): new_data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
-                        for i, v in enumerate(c_res): new_data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
-                        new_data.extend([
-                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": alo},
-                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": sai},
-                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": saf},
-                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": red}
-                        ])
-                        df_p = pd.concat([df_p[~((df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel))], pd.DataFrame(new_data)])
+                        data = []
+                        # IMPORTANTE: Guardamos siempre todo (lo nuevo y lo que ya estaba bloqueado)
+                        for i, v in enumerate(q_res): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
+                        for i, v in enumerate(s_res): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
+                        for i, v in enumerate(c_res): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
+                        data.extend([{"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": alo},
+                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": sai},
+                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": saf},
+                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": red}])
+                        
+                        df_p = pd.concat([df_p[~((df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel))], pd.DataFrame(data)])
                         conn.update(worksheet="Predicciones", data=df_p)
-                        st.success("✅ ¡Actualizado!")
+                        st.success("✅ Predicciones actualizadas.")
 
     with tab2:
         st.header("📊 Clasificación General")
@@ -319,125 +320,99 @@ else:
             st.dataframe(df_f, use_container_width=True, hide_index=True)
 
             st.divider()
-            u_v = st.selectbox("Historial Detallado Piloto", participantes)
-            g_v = st.selectbox("Historial Detallado GP", GPS)
+            st.subheader("🧐 Historial Detallado")
+            col_u, col_g = st.columns(2)
+            u_v = col_u.selectbox("Piloto", participantes, key="hist_u")
+            g_v = col_g.selectbox("Gran Premio", GPS, key="hist_g")
             det = calcular_puntos_gp(df_p[(df_p['Usuario']==u_v) & (df_p['GP']==g_v)], df_r[df_r['GP']==g_v], detalle=True)
             c1, c2, c3, c4, c5 = st.columns(5)
             c1.metric("Qualy", det["Qualy"])
             c2.metric("Sprint", det["Sprint"])
             c3.metric("Carrera", det["Carrera"])
             c4.metric("Extras", det["Extras"])
-            c5.metric("Total", sum(det.values()))
+            c5.metric("Total GP", sum(det.values()))
 
     with tab3:
         st.header("🏆 Mundial de Temporada")
         st.warning("🔒 El periodo de predicciones para el Mundial ha finalizado.")
         df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
         if not df_u_temp.empty:
+            st.write("Tus predicciones guardadas:")
             st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
+        else:
+            st.info("No realizaste predicciones para el Mundial.")
 
     with tab4:
         if st.session_state.rol == 'admin':
-            # Creamos las 3 sub-pestañas para el Admin
             adm_gp, adm_final, adm_fechas = st.tabs(["🏁 Resultados GP", "🌎 Mundial Final", "📅 Fechas Límite"])
             
             with adm_gp:
-                st.subheader(f"Publicar Resultados Reales: {gp_sel}")
+                st.subheader(f"Resultados Reales: {gp_sel}")
                 with st.form("admin_gp_results"):
                     ac1, ac2 = st.columns(2)
                     with ac1:
-                        st.markdown("**Top 5 Clasificación**")
-                        aq = [st.selectbox(f"Q{i+1} Real", PILOTOS_2026, key=f"rq{i}") for i in range(5)]
-                        st.markdown("**Top 5 Carrera**")
-                        ac = [st.selectbox(f"C{i+1} Real", PILOTOS_2026, key=f"rc{i}") for i in range(5)]
-                    
+                        st.markdown("**Top 5 Q y C**")
+                        aq = [st.selectbox(f"Q{i+1} Real", PILOTOS_2026, key=f"arq{i}") for i in range(5)]
+                        ac = [st.selectbox(f"C{i+1} Real", PILOTOS_2026, key=f"arc{i}") for i in range(5)]
                     with ac2:
-                        st.markdown("**Eventos y Españoles**")
-                        res_alo = st.selectbox("Alonso Real", POSICIONES_CARRERA, key="ra_admin")
-                        res_sai = st.selectbox("Sainz Real", POSICIONES_CARRERA, key="rs_admin")
-                        res_sf = st.selectbox("Safety Car Real", ["SI", "NO"], key="rsf_admin")
-                        res_rf = st.selectbox("Red Flag Real", ["SI", "NO"], key="rrf_admin")
-                        
+                        st.markdown("**Extras**")
+                        res_alo = st.selectbox("Alonso Real", POSICIONES_CARRERA, key="ara")
+                        res_sai = st.selectbox("Sainz Real", POSICIONES_CARRERA, key="ars")
+                        res_sf = st.selectbox("Safety Real", ["SI", "NO"], key="arsf")
+                        res_rf = st.selectbox("Red Flag Real", ["SI", "NO"], key="arrf")
                         as_res = []
                         if es_sprint:
                             st.markdown("---")
                             st.markdown("**Top 3 Sprint**")
-                            as_res = [st.selectbox(f"S{i+1} Real", PILOTOS_2026, key=f"rsprint{i}") for i in range(3)]
+                            as_res = [st.selectbox(f"S{i+1} Real", PILOTOS_2026, key=f"arsprint{i}") for i in range(3)]
                     
-                    if st.form_submit_button("📢 Publicar Resultados del GP"):
+                    if st.form_submit_button("📢 Publicar Resultados"):
                         r_data = []
-                        # Guardar Qualy
                         for i, v in enumerate(aq): r_data.append({"GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
-                        # Guardar Carrera
                         for i, v in enumerate(ac): r_data.append({"GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
-                        # Guardar Sprint si aplica
                         for i, v in enumerate(as_res): r_data.append({"GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
-                        # Guardar Extras
-                        r_data.extend([
-                            {"GP": gp_sel, "Variable": "Alonso", "Valor": res_alo},
-                            {"GP": gp_sel, "Variable": "Sainz", "Valor": res_sai},
-                            {"GP": gp_sel, "Variable": "Safety", "Valor": res_sf},
-                            {"GP": gp_sel, "Variable": "RedFlag", "Valor": res_rf}
-                        ])
-                        
-                        # Actualizar la hoja de Resultados
+                        r_data.extend([{"GP": gp_sel, "Variable": "Alonso", "Valor": res_alo}, {"GP": gp_sel, "Variable": "Sainz", "Valor": res_sai},
+                                       {"GP": gp_sel, "Variable": "Safety", "Valor": res_sf}, {"GP": gp_sel, "Variable": "RedFlag", "Valor": res_rf}])
                         df_r = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(r_data)])
                         conn.update(worksheet="Resultados", data=df_r)
-                        st.success(f"✅ Resultados de {gp_sel} publicados y puntos actualizados.")
+                        st.success("✅ Resultados publicados.")
 
             with adm_final:
-                st.subheader("Subir Clasificación Final de la Temporada 2026")
-                st.info("Esto se rellena una vez terminado el mundial en Abu Dabi.")
+                st.subheader("Resultados Finales del Campeonato")
                 with st.form("admin_mundial_final"):
                     am1, am2 = st.columns(2)
-                    final_p = [am1.selectbox(f"P{i+1} Final Mundial", PILOTOS_2026, key=f"fp{i}") for i in range(22)]
-                    final_e = [am2.selectbox(f"E{i+1} Final Mundial", EQUIPOS_2026, key=f"fe{i}") for i in range(11)]
-                    
-                    if st.form_submit_button("🏆 Publicar Resultados Finales"):
-                        m_final = []
-                        for i, v in enumerate(final_p): m_final.append({"Variable": f"P{i+1}", "Valor": v})
-                        for i, v in enumerate(final_e): m_final.append({"Variable": f"E{i+1}", "Valor": v})
-                        conn.update(worksheet="ResultadosMundial", data=pd.DataFrame(m_final))
-                        st.success("🏆 ¡Resultados finales del Mundial guardados!")
+                    f_p = [am1.selectbox(f"P{i+1} Mundial", PILOTOS_2026, key=f"fp{i}") for i in range(22)]
+                    f_e = [am2.selectbox(f"E{i+1} Mundial", EQUIPOS_2026, key=f"fe{i}") for i in range(11)]
+                    if st.form_submit_button("🏆 Publicar Mundial"):
+                        m_f = []
+                        for i, v in enumerate(f_p): m_f.append({"Variable": f"P{i+1}", "Valor": v})
+                        for i, v in enumerate(f_e): m_f.append({"Variable": f"E{i+1}", "Valor": v})
+                        conn.update(worksheet="ResultadosMundial", data=pd.DataFrame(m_f))
+                        st.success("🏆 Resultados finales guardados.")
 
             with adm_fechas:
-                st.subheader("Configurar Cierres de Apuestas")
-                st.write("Configura cuándo se bloquea cada sesión del fin de semana.")
+                st.subheader("Configurar Cierres")
                 with st.form("f_cal_admin"):
-                    f_gp = st.selectbox("GP a configurar", GPS)
+                    f_gp = st.selectbox("GP", GPS, key="f_gp")
                     c_q, c_s, c_c = st.columns(3)
-                    
-                    with c_q:
-                        st.markdown("**Cierre Qualy**")
-                        dq = st.date_input("Fecha Q", key="dq")
-                        tq = st.time_input("Hora Q", key="tq")
-                    with c_s:
-                        st.markdown("**Cierre Sprint**")
-                        ds = st.date_input("Fecha S", key="ds")
-                        ts = st.time_input("Hora S", key="ts")
-                    with c_c:
-                        st.markdown("**Cierre Carrera**")
-                        dc = st.date_input("Fecha C", key="dc")
-                        tc = st.time_input("Hora C", key="tc")
-                    
-                    if st.form_submit_button("📅 Guardar Fechas Límite"):
-                        cal_data = {
-                            "GP": f_gp,
-                            "LimiteQualy": datetime.combine(dq, tq).strftime('%Y-%m-%d %H:%M:%S'),
-                            "LimiteSprint": datetime.combine(ds, ts).strftime('%Y-%m-%d %H:%M:%S'),
-                            "LimiteCarrera": datetime.combine(dc, tc).strftime('%Y-%m-%d %H:%M:%S')
-                        }
-                        df_cal = pd.concat([df_cal[df_cal['GP'] != f_gp], pd.DataFrame([cal_data])])
+                    dq, tq = c_q.date_input("Fecha Q"), c_q.time_input("Hora Q")
+                    ds, ts = c_s.date_input("Fecha S"), c_s.time_input("Hora S")
+                    dc, tc = c_c.date_input("Fecha C"), c_c.time_input("Hora C")
+                    if st.form_submit_button("📅 Guardar Fechas"):
+                        c_data = {"GP": f_gp, 
+                                  "LimiteQualy": datetime.combine(dq, tq).strftime('%Y-%m-%d %H:%M:%S'),
+                                  "LimiteSprint": datetime.combine(ds, ts).strftime('%Y-%m-%d %H:%M:%S'),
+                                  "LimiteCarrera": datetime.combine(dc, tc).strftime('%Y-%m-%d %H:%M:%S')}
+                        df_cal = pd.concat([df_cal[df_cal['GP'] != f_gp], pd.DataFrame([c_data])])
                         conn.update(worksheet="Calendario", data=df_cal)
-                        st.success(f"✅ Fechas para {f_gp} actualizadas correctamente.")
-        else:
-            st.error("⛔ Acceso restringido a administradores.")
+                        st.success("✅ Fechas actualizadas.")
+        else: st.error("Acceso restringido.")
 
     with tab5: # MURO
-        st.header("🔍 El Muro")
+        st.header("🔍 El Muro de la Verdad")
         df_muro = df_p[df_p['GP'] == gp_sel].copy()
         if not df_muro.empty:
             df_piv = df_muro.pivot(index='Usuario', columns='Variable', values='Valor')
-            # Ordenamos columnas: Q1..5, S1..3, C1..5, Extras
-            cols = [f'Q{i+1}' for i in range(5)] + [f'S{i+1}' for i in range(3)] + [f'C{i+1}' for i in range(5)] + ['Alonso', 'Sainz', 'Safety', 'RedFlag']
+            cols = [f'Q{i+1}' for i in range(5)] + ([f'S{i+1}' for i in range(3)] if es_sprint else []) + [f'C{i+1}' for i in range(5)] + ['Alonso', 'Sainz', 'Safety', 'RedFlag']
             st.dataframe(df_piv[[c for c in cols if c in df_piv.columns]], use_container_width=True)
+        else: st.info("Nadie ha apostado aún.")
