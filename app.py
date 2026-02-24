@@ -116,6 +116,11 @@ else:
         st.rerun()
     
     # Definición de las 4 pestañas principales
+    # 1. Definimos las listas con la opción neutra para la interfaz
+    OPCIONES_PILOTOS = ["- Seleccionar -"] + PILOTOS_2026
+    OPCIONES_EQUIPOS = ["- Seleccionar -"] + EQUIPOS_2026
+
+    # Definición de las 4 pestañas principales
     tab1, tab2, tab3, tab4 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin"])
 
     with tab1:
@@ -124,7 +129,6 @@ else:
         if st.session_state.rol == 'admin':
             st.warning("⚠️ Los administradores no participan en las apuestas.")
         else:
-            # REGLA 4: Cargar predicciones previas si existen
             user_gp_preds = df_p[(df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel)]
             
             def get_val(var, default_val):
@@ -138,17 +142,18 @@ else:
                     st.subheader("⏱️ Clasificación")
                     q_res = []
                     for i in range(5):
-                        saved_q = get_val(f"Q{i+1}", PILOTOS_2026[0])
-                        idx_q = PILOTOS_2026.index(saved_q) if saved_q in PILOTOS_2026 else 0
-                        q_res.append(st.selectbox(f"P{i+1} Qualy", PILOTOS_2026, index=idx_q, key=f"q_sel_{i}"))
+                        saved_q = get_val(f"Q{i+1}", "- Seleccionar -")
+                        # Buscamos el índice en la lista que incluye "- Seleccionar -"
+                        idx_q = OPCIONES_PILOTOS.index(saved_q) if saved_q in OPCIONES_PILOTOS else 0
+                        q_res.append(st.selectbox(f"P{i+1} Qualy", OPCIONES_PILOTOS, index=idx_q, key=f"q_sel_{i}"))
                 
                 with c2:
                     st.subheader("🏁 Carrera")
                     c_res = []
                     for i in range(5):
-                        saved_c = get_val(f"C{i+1}", PILOTOS_2026[0])
-                        idx_c = PILOTOS_2026.index(saved_c) if saved_c in PILOTOS_2026 else 0
-                        c_res.append(st.selectbox(f"P{i+1} Carrera", PILOTOS_2026, index=idx_c, key=f"c_sel_{i}"))
+                        saved_c = get_val(f"C{i+1}", "- Seleccionar -")
+                        idx_c = OPCIONES_PILOTOS.index(saved_c) if saved_c in OPCIONES_PILOTOS else 0
+                        c_res.append(st.selectbox(f"P{i+1} Carrera", OPCIONES_PILOTOS, index=idx_c, key=f"c_sel_{i}"))
 
                 st.divider()
                 c3, c4 = st.columns(2)
@@ -168,40 +173,28 @@ else:
                     red = st.selectbox("¿Habrá Bandera Roja?", ["SI", "NO"], index=0 if val_rf == "SI" else 1)
 
                 if st.form_submit_button("💾 Guardar Predicción GP"):
-                    data_env = []
-                    for i, v in enumerate(q_res): data_env.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
-                    for i, v in enumerate(c_res): data_env.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
-                    data_env.extend([
-                        {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": str(alo)},
-                        {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": str(sai)},
-                        {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": saf},
-                        {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": red}
-                    ])
-                    df_p = pd.concat([df_p[~((df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel))], pd.DataFrame(data_env)])
-                    conn.update(worksheet="Predicciones", data=df_p)
-                    st.success("✅ Predicciones de GP guardadas.")
-
-    with tab2:
-        st.header("📊 Clasificación General")
-        df_u_rank = leer_datos("Usuarios")
-        if not df_u_rank.empty:
-            participantes = df_u_rank[df_u_rank['Rol'] != 'admin']['Usuario'].unique()
-            ranking = []
-            for u in participantes:
-                p_total = sum([calcular_puntos_gp(df_p[(df_p['Usuario'] == u) & (df_p['GP'] == g)], df_r[df_r['GP'] == g]) for g in GPS])
-                ranking.append({"Piloto": u, "Puntos": p_total})
-            
-            df_final_rank = pd.DataFrame(ranking).sort_values("Puntos", ascending=False)
-            st.table(df_final_rank)
-        else:
-            st.info("Aún no hay pilotos registrados.")
+                    # Validación: Que no haya "- Seleccionar -"
+                    if "- Seleccionar -" in q_res or "- Seleccionar -" in c_res:
+                        st.error("⚠️ Por favor, selecciona un piloto para todas las posiciones del Top 5.")
+                    else:
+                        data_env = []
+                        for i, v in enumerate(q_res): data_env.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
+                        for i, v in enumerate(c_res): data_env.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
+                        data_env.extend([
+                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": str(alo)},
+                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": str(sai)},
+                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": saf},
+                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": red}
+                        ])
+                        df_p = pd.concat([df_p[~((df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel))], pd.DataFrame(data_env)])
+                        conn.update(worksheet="Predicciones", data=df_p)
+                        st.success("✅ Predicciones de GP guardadas.")
 
     with tab3:
         st.header("🏆 Mundial de Temporada")
         if MUNDIAL_BLOQUEADO:
             st.warning("🔒 Las apuestas de temporada están cerradas.")
         
-        # Filtramos las de este usuario
         df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
         
         with st.form("form_temporada"):
@@ -212,8 +205,11 @@ else:
                 pred_p = []
                 for i in range(22):
                     match_p = df_u_temp[df_u_temp['Variable'] == f"P{i+1}"]
-                    default_p = match_p.iloc[0]['Valor'] if not match_p.empty else PILOTOS_2026[i]
-                    p_sel = st.selectbox(f"P{i+1}", PILOTOS_2026, index=PILOTOS_2026.index(default_p) if default_p in PILOTOS_2026 else 0, key=f"tp_{i}", disabled=MUNDIAL_BLOQUEADO)
+                    # Si no hay nada guardado, por defecto "- Seleccionar -"
+                    default_p = match_p.iloc[0]['Valor'] if not match_p.empty else "- Seleccionar -"
+                    idx_p = OPCIONES_PILOTOS.index(default_p) if default_p in OPCIONES_PILOTOS else 0
+                    
+                    p_sel = st.selectbox(f"P{i+1}", OPCIONES_PILOTOS, index=idx_p, key=f"tp_{i}", disabled=MUNDIAL_BLOQUEADO)
                     pred_p.append(p_sel)
 
             with col_equ:
@@ -221,13 +217,18 @@ else:
                 pred_e = []
                 for i in range(11):
                     match_e = df_u_temp[df_u_temp['Variable'] == f"E{i+1}"]
-                    default_e = match_e.iloc[0]['Valor'] if not match_e.empty else EQUIPOS_2026[i]
-                    e_sel = st.selectbox(f"E{i+1}", EQUIPOS_2026, index=EQUIPOS_2026.index(default_e) if default_e in EQUIPOS_2026 else 0, key=f"te_{i}", disabled=MUNDIAL_BLOQUEADO)
+                    default_e = match_e.iloc[0]['Valor'] if not match_e.empty else "- Seleccionar -"
+                    idx_e = OPCIONES_EQUIPOS.index(default_e) if default_e in OPCIONES_EQUIPOS else 0
+                    
+                    e_sel = st.selectbox(f"E{i+1}", OPCIONES_EQUIPOS, index=idx_e, key=f"te_{i}", disabled=MUNDIAL_BLOQUEADO)
                     pred_e.append(e_sel)
 
             if st.form_submit_button("💾 Guardar Mundial", disabled=MUNDIAL_BLOQUEADO):
-                if len(set(pred_p)) < 22 or len(set(pred_e)) < 11:
-                    st.error("⚠️ Error: No puedes repetir pilotos o escuderías.")
+                # Validaciones
+                if "- Seleccionar -" in pred_p or "- Seleccionar -" in pred_e:
+                    st.error("⚠️ Debes completar todas las posiciones antes de guardar.")
+                elif len(set(pred_p)) < 22 or len(set(pred_e)) < 11:
+                    st.error("⚠️ No puedes repetir pilotos o escuderías.")
                 else:
                     m_env = []
                     for i, v in enumerate(pred_p): m_env.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
