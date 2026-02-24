@@ -336,102 +336,102 @@ else:
         if not df_u_temp.empty:
             st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
 
-   with tab4:
-        if st.session_state.rol == 'admin':
-            # Creamos las 3 sub-pestañas para el Admin
-            adm_gp, adm_final, adm_fechas = st.tabs(["🏁 Resultados GP", "🌎 Mundial Final", "📅 Fechas Límite"])
-            
-            with adm_gp:
-                st.subheader(f"Publicar Resultados Reales: {gp_sel}")
-                with st.form("admin_gp_results"):
-                    ac1, ac2 = st.columns(2)
-                    with ac1:
-                        st.markdown("**Top 5 Clasificación**")
-                        aq = [st.selectbox(f"Q{i+1} Real", PILOTOS_2026, key=f"rq{i}") for i in range(5)]
-                        st.markdown("**Top 5 Carrera**")
-                        ac = [st.selectbox(f"C{i+1} Real", PILOTOS_2026, key=f"rc{i}") for i in range(5)]
-                    
-                    with ac2:
-                        st.markdown("**Eventos y Españoles**")
-                        res_alo = st.selectbox("Alonso Real", POSICIONES_CARRERA, key="ra_admin")
-                        res_sai = st.selectbox("Sainz Real", POSICIONES_CARRERA, key="rs_admin")
-                        res_sf = st.selectbox("Safety Car Real", ["SI", "NO"], key="rsf_admin")
-                        res_rf = st.selectbox("Red Flag Real", ["SI", "NO"], key="rrf_admin")
+       with tab4:
+            if st.session_state.rol == 'admin':
+                # Creamos las 3 sub-pestañas para el Admin
+                adm_gp, adm_final, adm_fechas = st.tabs(["🏁 Resultados GP", "🌎 Mundial Final", "📅 Fechas Límite"])
+                
+                with adm_gp:
+                    st.subheader(f"Publicar Resultados Reales: {gp_sel}")
+                    with st.form("admin_gp_results"):
+                        ac1, ac2 = st.columns(2)
+                        with ac1:
+                            st.markdown("**Top 5 Clasificación**")
+                            aq = [st.selectbox(f"Q{i+1} Real", PILOTOS_2026, key=f"rq{i}") for i in range(5)]
+                            st.markdown("**Top 5 Carrera**")
+                            ac = [st.selectbox(f"C{i+1} Real", PILOTOS_2026, key=f"rc{i}") for i in range(5)]
                         
-                        as_res = []
-                        if es_sprint:
-                            st.markdown("---")
-                            st.markdown("**Top 3 Sprint**")
-                            as_res = [st.selectbox(f"S{i+1} Real", PILOTOS_2026, key=f"rsprint{i}") for i in range(3)]
-                    
-                    if st.form_submit_button("📢 Publicar Resultados del GP"):
-                        r_data = []
-                        # Guardar Qualy
-                        for i, v in enumerate(aq): r_data.append({"GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
-                        # Guardar Carrera
-                        for i, v in enumerate(ac): r_data.append({"GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
-                        # Guardar Sprint si aplica
-                        for i, v in enumerate(as_res): r_data.append({"GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
-                        # Guardar Extras
-                        r_data.extend([
-                            {"GP": gp_sel, "Variable": "Alonso", "Valor": res_alo},
-                            {"GP": gp_sel, "Variable": "Sainz", "Valor": res_sai},
-                            {"GP": gp_sel, "Variable": "Safety", "Valor": res_sf},
-                            {"GP": gp_sel, "Variable": "RedFlag", "Valor": res_rf}
-                        ])
+                        with ac2:
+                            st.markdown("**Eventos y Españoles**")
+                            res_alo = st.selectbox("Alonso Real", POSICIONES_CARRERA, key="ra_admin")
+                            res_sai = st.selectbox("Sainz Real", POSICIONES_CARRERA, key="rs_admin")
+                            res_sf = st.selectbox("Safety Car Real", ["SI", "NO"], key="rsf_admin")
+                            res_rf = st.selectbox("Red Flag Real", ["SI", "NO"], key="rrf_admin")
+                            
+                            as_res = []
+                            if es_sprint:
+                                st.markdown("---")
+                                st.markdown("**Top 3 Sprint**")
+                                as_res = [st.selectbox(f"S{i+1} Real", PILOTOS_2026, key=f"rsprint{i}") for i in range(3)]
                         
-                        # Actualizar la hoja de Resultados
-                        df_r = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(r_data)])
-                        conn.update(worksheet="Resultados", data=df_r)
-                        st.success(f"✅ Resultados de {gp_sel} publicados y puntos actualizados.")
-
-            with adm_final:
-                st.subheader("Subir Clasificación Final de la Temporada 2026")
-                st.info("Esto se rellena una vez terminado el mundial en Abu Dabi.")
-                with st.form("admin_mundial_final"):
-                    am1, am2 = st.columns(2)
-                    final_p = [am1.selectbox(f"P{i+1} Final Mundial", PILOTOS_2026, key=f"fp{i}") for i in range(22)]
-                    final_e = [am2.selectbox(f"E{i+1} Final Mundial", EQUIPOS_2026, key=f"fe{i}") for i in range(11)]
-                    
-                    if st.form_submit_button("🏆 Publicar Resultados Finales"):
-                        m_final = []
-                        for i, v in enumerate(final_p): m_final.append({"Variable": f"P{i+1}", "Valor": v})
-                        for i, v in enumerate(final_e): m_final.append({"Variable": f"E{i+1}", "Valor": v})
-                        conn.update(worksheet="ResultadosMundial", data=pd.DataFrame(m_final))
-                        st.success("🏆 ¡Resultados finales del Mundial guardados!")
-
-            with adm_fechas:
-                st.subheader("Configurar Cierres de Apuestas")
-                st.write("Configura cuándo se bloquea cada sesión del fin de semana.")
-                with st.form("f_cal_admin"):
-                    f_gp = st.selectbox("GP a configurar", GPS)
-                    c_q, c_s, c_c = st.columns(3)
-                    
-                    with c_q:
-                        st.markdown("**Cierre Qualy**")
-                        dq = st.date_input("Fecha Q", key="dq")
-                        tq = st.time_input("Hora Q", key="tq")
-                    with c_s:
-                        st.markdown("**Cierre Sprint**")
-                        ds = st.date_input("Fecha S", key="ds")
-                        ts = st.time_input("Hora S", key="ts")
-                    with c_c:
-                        st.markdown("**Cierre Carrera**")
-                        dc = st.date_input("Fecha C", key="dc")
-                        tc = st.time_input("Hora C", key="tc")
-                    
-                    if st.form_submit_button("📅 Guardar Fechas Límite"):
-                        cal_data = {
-                            "GP": f_gp,
-                            "LimiteQualy": datetime.combine(dq, tq).strftime('%Y-%m-%d %H:%M:%S'),
-                            "LimiteSprint": datetime.combine(ds, ts).strftime('%Y-%m-%d %H:%M:%S'),
-                            "LimiteCarrera": datetime.combine(dc, tc).strftime('%Y-%m-%d %H:%M:%S')
-                        }
-                        df_cal = pd.concat([df_cal[df_cal['GP'] != f_gp], pd.DataFrame([cal_data])])
-                        conn.update(worksheet="Calendario", data=df_cal)
-                        st.success(f"✅ Fechas para {f_gp} actualizadas correctamente.")
-        else:
-            st.error("⛔ Acceso restringido a administradores.")
+                        if st.form_submit_button("📢 Publicar Resultados del GP"):
+                            r_data = []
+                            # Guardar Qualy
+                            for i, v in enumerate(aq): r_data.append({"GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
+                            # Guardar Carrera
+                            for i, v in enumerate(ac): r_data.append({"GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
+                            # Guardar Sprint si aplica
+                            for i, v in enumerate(as_res): r_data.append({"GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
+                            # Guardar Extras
+                            r_data.extend([
+                                {"GP": gp_sel, "Variable": "Alonso", "Valor": res_alo},
+                                {"GP": gp_sel, "Variable": "Sainz", "Valor": res_sai},
+                                {"GP": gp_sel, "Variable": "Safety", "Valor": res_sf},
+                                {"GP": gp_sel, "Variable": "RedFlag", "Valor": res_rf}
+                            ])
+                            
+                            # Actualizar la hoja de Resultados
+                            df_r = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(r_data)])
+                            conn.update(worksheet="Resultados", data=df_r)
+                            st.success(f"✅ Resultados de {gp_sel} publicados y puntos actualizados.")
+    
+                with adm_final:
+                    st.subheader("Subir Clasificación Final de la Temporada 2026")
+                    st.info("Esto se rellena una vez terminado el mundial en Abu Dabi.")
+                    with st.form("admin_mundial_final"):
+                        am1, am2 = st.columns(2)
+                        final_p = [am1.selectbox(f"P{i+1} Final Mundial", PILOTOS_2026, key=f"fp{i}") for i in range(22)]
+                        final_e = [am2.selectbox(f"E{i+1} Final Mundial", EQUIPOS_2026, key=f"fe{i}") for i in range(11)]
+                        
+                        if st.form_submit_button("🏆 Publicar Resultados Finales"):
+                            m_final = []
+                            for i, v in enumerate(final_p): m_final.append({"Variable": f"P{i+1}", "Valor": v})
+                            for i, v in enumerate(final_e): m_final.append({"Variable": f"E{i+1}", "Valor": v})
+                            conn.update(worksheet="ResultadosMundial", data=pd.DataFrame(m_final))
+                            st.success("🏆 ¡Resultados finales del Mundial guardados!")
+    
+                with adm_fechas:
+                    st.subheader("Configurar Cierres de Apuestas")
+                    st.write("Configura cuándo se bloquea cada sesión del fin de semana.")
+                    with st.form("f_cal_admin"):
+                        f_gp = st.selectbox("GP a configurar", GPS)
+                        c_q, c_s, c_c = st.columns(3)
+                        
+                        with c_q:
+                            st.markdown("**Cierre Qualy**")
+                            dq = st.date_input("Fecha Q", key="dq")
+                            tq = st.time_input("Hora Q", key="tq")
+                        with c_s:
+                            st.markdown("**Cierre Sprint**")
+                            ds = st.date_input("Fecha S", key="ds")
+                            ts = st.time_input("Hora S", key="ts")
+                        with c_c:
+                            st.markdown("**Cierre Carrera**")
+                            dc = st.date_input("Fecha C", key="dc")
+                            tc = st.time_input("Hora C", key="tc")
+                        
+                        if st.form_submit_button("📅 Guardar Fechas Límite"):
+                            cal_data = {
+                                "GP": f_gp,
+                                "LimiteQualy": datetime.combine(dq, tq).strftime('%Y-%m-%d %H:%M:%S'),
+                                "LimiteSprint": datetime.combine(ds, ts).strftime('%Y-%m-%d %H:%M:%S'),
+                                "LimiteCarrera": datetime.combine(dc, tc).strftime('%Y-%m-%d %H:%M:%S')
+                            }
+                            df_cal = pd.concat([df_cal[df_cal['GP'] != f_gp], pd.DataFrame([cal_data])])
+                            conn.update(worksheet="Calendario", data=df_cal)
+                            st.success(f"✅ Fechas para {f_gp} actualizadas correctamente.")
+            else:
+                st.error("⛔ Acceso restringido a administradores.")
 
     with tab5: # MURO
         st.header("🔍 El Muro")
