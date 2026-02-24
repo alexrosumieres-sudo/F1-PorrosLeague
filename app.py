@@ -117,8 +117,11 @@ else:
     
     # Definición de las 4 pestañas principales
     # 1. Definimos las listas con la opción neutra para la interfaz
+    # Listas de opciones con el valor neutro
     OPCIONES_PILOTOS = ["- Seleccionar -"] + PILOTOS_2026
-    OPCIONES_EQUIPOS = ["- Seleccionar -"] + EQUIPOS_2026
+    OPCIONES_BINARIAS = ["- Seleccionar -", "SI", "NO"]
+    # Para Alonso y Sainz: Seleccionar, DNF (No acabó) o posiciones del 1 al 22
+    POSICIONES_CARRERA = ["- Seleccionar -", "DNF"] + [str(i) for i in range(1, 23)]
 
     # Definición de las 4 pestañas principales
     tab1, tab2, tab3, tab4 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin"])
@@ -143,7 +146,6 @@ else:
                     q_res = []
                     for i in range(5):
                         saved_q = get_val(f"Q{i+1}", "- Seleccionar -")
-                        # Buscamos el índice en la lista que incluye "- Seleccionar -"
                         idx_q = OPCIONES_PILOTOS.index(saved_q) if saved_q in OPCIONES_PILOTOS else 0
                         q_res.append(st.selectbox(f"P{i+1} Qualy", OPCIONES_PILOTOS, index=idx_q, key=f"q_sel_{i}"))
                 
@@ -159,23 +161,33 @@ else:
                 c3, c4 = st.columns(2)
                 with c3:
                     st.subheader("🇪🇸 Españoles")
-                    try: val_alo = int(get_val("Alonso", 14))
-                    except: val_alo = 14
-                    try: val_sai = int(get_val("Sainz", 5))
-                    except: val_sai = 5
-                    alo = st.number_input("Pos. Alonso", 1, 22, val_alo)
-                    sai = st.number_input("Pos. Sainz Jr.", 1, 22, val_sai)
+                    # Ahora Alonso y Sainz son selectbox con "- Seleccionar -"
+                    saved_alo = get_val("Alonso", "- Seleccionar -")
+                    saved_sai = get_val("Sainz", "- Seleccionar -")
+                    
+                    idx_alo = POSICIONES_CARRERA.index(saved_alo) if saved_alo in POSICIONES_CARRERA else 0
+                    idx_sai = POSICIONES_CARRERA.index(saved_sai) if saved_sai in POSICIONES_CARRERA else 0
+                    
+                    alo = st.selectbox("Pos. Alonso", POSICIONES_CARRERA, index=idx_alo)
+                    sai = st.selectbox("Pos. Sainz Jr.", POSICIONES_CARRERA, index=idx_sai)
+                    
                 with c4:
                     st.subheader("🎲 Caos")
-                    val_sf = get_val("Safety", "NO")
-                    val_rf = get_val("RedFlag", "NO")
-                    saf = st.selectbox("¿Habrá Safety Car?", ["SI", "NO"], index=0 if val_sf == "SI" else 1)
-                    red = st.selectbox("¿Habrá Bandera Roja?", ["SI", "NO"], index=0 if val_rf == "SI" else 1)
+                    saved_sf = get_val("Safety", "- Seleccionar -")
+                    saved_rf = get_val("RedFlag", "- Seleccionar -")
+                    
+                    idx_sf = OPCIONES_BINARIAS.index(saved_sf) if saved_sf in OPCIONES_BINARIAS else 0
+                    idx_rf = OPCIONES_BINARIAS.index(saved_rf) if saved_rf in OPCIONES_BINARIAS else 0
+                    
+                    saf = st.selectbox("¿Habrá Safety Car?", OPCIONES_BINARIAS, index=idx_sf)
+                    red = st.selectbox("¿Habrá Bandera Roja?", OPCIONES_BINARIAS, index=idx_rf)
 
                 if st.form_submit_button("💾 Guardar Predicción GP"):
-                    # Validación: Que no haya "- Seleccionar -"
-                    if "- Seleccionar -" in q_res or "- Seleccionar -" in c_res:
-                        st.error("⚠️ Por favor, selecciona un piloto para todas las posiciones del Top 5.")
+                    # Validación global de "No Seleccionado"
+                    todas_las_preds = q_res + c_res + [alo, sai, saf, red]
+                    
+                    if "- Seleccionar -" in todas_las_preds:
+                        st.error("⚠️ No has terminado: selecciona una opción en todos los campos marcados.")
                     else:
                         data_env = []
                         for i, v in enumerate(q_res): data_env.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
@@ -188,7 +200,72 @@ else:
                         ])
                         df_p = pd.concat([df_p[~((df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel))], pd.DataFrame(data_env)])
                         conn.update(worksheet="Predicciones", data=df_p)
-                        st.success("✅ Predicciones de GP guardadas.")
+                        st.success("✅ ¡Apuesta de GP guardada con éxito!")
+    with tab2:
+        st.header("📊 Clasificación General")
+        
+        # 1. Recargamos Usuarios para asegurar que tenemos los últimos registros
+        df_u_rank = leer_datos("Usuarios")
+        
+        # Verificamos que la tabla de usuarios no esté vacía y tenga la columna 'Usuario'
+        if not df_u_rank.empty and 'Usuario' in df_u_rank.columns:
+            
+            # 2. Filtrar participantes: solo los que tienen rol 'user' (quitamos al admin)
+            # También nos aseguramos de que el rol exista en la tabla
+            if 'Rol' in df_u_rank.columns:
+                participantes = df_u_rank[df_u_rank['Rol'] == 'user']['Usuario'].unique()
+            else:
+                participantes = df_u_rank['Usuario'].unique()
+            
+            if len(participantes) == 0:
+                st.info("Aún no hay participantes registrados para mostrar en el ranking.")
+            else:
+                ranking_data = []
+                
+                # 3. Calcular puntos para cada usuario
+                for u in participantes:
+                    puntos_acumulados = 0.0
+                    
+                    # Iteramos por cada Gran Premio definido en la lista GPS
+                    for g in GPS:
+                        # Filtramos predicciones del usuario en este GP
+                        # Usamos .copy() para evitar avisos de SettingWithCopy de Pandas
+                        u_preds_gp = df_p[(df_p['Usuario'] == u) & (df_p['GP'] == g)].copy()
+                        
+                        # Filtramos resultados reales de este GP
+                        res_reales_gp = df_r[df_r['GP'] == g].copy()
+                        
+                        # Calculamos los puntos de ese GP y sumamos al total
+                        puntos_gp = calcular_puntos_gp(u_preds_gp, res_reales_gp)
+                        puntos_acumulados += puntos_gp
+                    
+                    ranking_data.append({
+                        "Piloto": u,
+                        "Puntos": puntos_acumulados
+                    })
+                
+                # 4. Crear DataFrame final y ordenar
+                df_ranking_final = pd.DataFrame(ranking_data).sort_values("Puntos", ascending=False)
+                
+                # Añadimos una columna de posición (1º, 2º, 3º...)
+                df_ranking_final.insert(0, "Pos", range(1, len(df_ranking_final) + 1))
+                
+                # 5. Mostrar la tabla de forma estética
+                st.dataframe(
+                    df_ranking_final,
+                    use_container_width=True,
+                    hide_index=True # Oculta el índice de pandas para que solo se vea nuestra columna 'Pos'
+                )
+                
+                # Mensaje motivador
+                if not df_r.empty:
+                    lider = df_ranking_final.iloc[0]['Piloto']
+                    st.success(f"🏆 Actualmente lidera la porra: **{lider}**")
+                else:
+                    st.info("🏁 El ranking se actualizará cuando el Admin publique los resultados del primer GP.")
+                    
+        else:
+            st.error("No se pudo cargar la lista de usuarios. Verifica la pestaña 'Usuarios' en tu Excel.")
 
     with tab3:
         st.header("🏆 Mundial de Temporada")
