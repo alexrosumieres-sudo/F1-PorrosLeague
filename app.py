@@ -106,14 +106,14 @@ else:
     
     # DEFINICIÓN DE LAS 4 TABS CORRECCIÓN AQUÍ
     # Definición de las 4 pestañas principales
+    # Definición de las 4 pestañas principales
     tab1, tab2, tab3, tab4 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin"])
 
     with tab1:
         st.header(f"✍️ Mis Apuestas - {gp_sel}")
         
-        # REGLA 1: El Admin no puede realizar predicciones
         if st.session_state.rol == 'admin':
-            st.warning("⚠️ Los administradores no participan en las apuestas para mantener la limpieza de la competición.")
+            st.warning("⚠️ Los administradores no participan en las apuestas.")
         else:
             # REGLA 4: Cargar predicciones previas si existen
             user_gp_preds = df_p[(df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel)]
@@ -145,7 +145,6 @@ else:
                 c3, c4 = st.columns(2)
                 with c3:
                     st.subheader("🇪🇸 Españoles")
-                    # REGLA 3: Valores predeterminados no son fijos, son los guardados
                     val_alo = int(get_val("Alonso", 14))
                     val_sai = int(get_val("Sainz", 5))
                     alo = st.number_input("Pos. Alonso", 1, 22, val_alo)
@@ -167,16 +166,14 @@ else:
                         {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": saf},
                         {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": red}
                     ])
-                    # Limpiar anteriores y concatenar
                     df_p = pd.concat([df_p[~((df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel))], pd.DataFrame(data_env)])
                     conn.update(worksheet="Predicciones", data=df_p)
-                    st.success("✅ Predicciones de GP guardadas correctamente.")
+                    st.success("✅ Predicciones de GP guardadas.")
 
     with tab2:
         st.header("📊 Clasificación General")
-        df_u_rank = leer_datos("Usuarios", conn)
+        df_u_rank = leer_datos("Usuarios") # CORREGIDO: Sin el conn
         if not df_u_rank.empty:
-            # Filtramos solo usuarios que no sean admin para el ranking
             participantes = df_u_rank[df_u_rank['Rol'] != 'admin']['Usuario'].unique()
             ranking = []
             for u in participantes:
@@ -193,8 +190,7 @@ else:
         if MUNDIAL_BLOQUEADO:
             st.warning("🔒 Las apuestas de temporada están cerradas.")
         
-        # Cargar guardados de temporada
-        df_u_temp = df_t[df_t['Usuario'] == st.session_state.user]
+        df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
         
         with st.form("form_temporada"):
             col_pil, col_equ = st.columns(2)
@@ -203,8 +199,8 @@ else:
                 st.subheader("👤 Mundial Pilotos")
                 pred_p = []
                 for i in range(22):
-                    # Cargar guardado o primer piloto
                     match_p = df_u_temp[df_u_temp['Variable'] == f"P{i+1}"]
+                    # Si no hay guardado, sugerimos por defecto la lista 2026 en orden
                     default_p = match_p.iloc[0]['Valor'] if not match_p.empty else PILOTOS_2026[i]
                     p_sel = st.selectbox(f"P{i+1}", PILOTOS_2026, index=PILOTOS_2026.index(default_p), key=f"tp_{i}", disabled=MUNDIAL_BLOQUEADO)
                     pred_p.append(p_sel)
@@ -213,26 +209,22 @@ else:
                 st.subheader("🏎️ Mundial Equipos")
                 pred_e = []
                 for i in range(11):
-                    # Cargar guardado o primer equipo
                     match_e = df_u_temp[df_u_temp['Variable'] == f"E{i+1}"]
                     default_e = match_e.iloc[0]['Valor'] if not match_e.empty else EQUIPOS_2026[i]
                     e_sel = st.selectbox(f"E{i+1}", EQUIPOS_2026, index=EQUIPOS_2026.index(default_e), key=f"te_{i}", disabled=MUNDIAL_BLOQUEADO)
                     pred_e.append(e_sel)
 
             if st.form_submit_button("💾 Guardar Mundial", disabled=MUNDIAL_BLOQUEADO):
-                # REGLA 2: Validación de duplicados
-                if len(set(pred_p)) < 22:
-                    st.error("⚠️ Error: Has seleccionado al mismo piloto en varias posiciones.")
-                elif len(set(pred_e)) < 11:
-                    st.error("⚠️ Error: Has seleccionado a la misma escudería en varias posiciones.")
+                if len(set(pred_p)) < 22 or len(set(pred_e)) < 11:
+                    st.error("⚠️ Error: No puedes repetir pilotos o escuderías.")
                 else:
                     m_env = []
                     for i, v in enumerate(pred_p): m_env.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
                     for i, v in enumerate(pred_e): m_env.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
                     
-                    df_t = pd.concat([df_t[df_t['Usuario'] != st.session_state.user], pd.DataFrame(m_env)])
-                    conn.update(worksheet="Temporada", data=df_t)
-                    st.success("✅ Tu apuesta para el Mundial ha sido guardada.")
+                    df_temp_final = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(m_env)])
+                    conn.update(worksheet="Temporada", data=df_temp_final)
+                    st.success("✅ Mundial guardado.")
 
     with tab4:
         if st.session_state.rol == 'admin':
@@ -259,8 +251,9 @@ else:
                         {"GP": gp_sel, "Variable": "Safety", "Valor": res_sf},
                         {"GP": gp_sel, "Variable": "RedFlag", "Valor": res_rf}
                     ])
-                    df_r = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(r_data)])
-                    conn.update(worksheet="Resultados", data=df_r)
-                    st.success("🏁 Resultados publicados y puntos actualizados.")
+                    df_r_final = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(r_data)])
+                    conn.update(worksheet="Resultados", data=df_r_final)
+                    st.success("🏁 Resultados publicados.")
         else:
-            st.error("⛔ No tienes permisos para acceder a esta sección.")
+            st.error("⛔ Sección restringida.")
+    
