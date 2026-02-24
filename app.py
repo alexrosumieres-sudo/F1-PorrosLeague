@@ -16,10 +16,37 @@ EQUIPOS_2026 = sorted([
     "Racing Bulls", "Aston Martin", "Haas", "Audi", "Alpine", "Cadillac"
 ])
 
-FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 1, 10, 0)
-MUNDIAL_BLOQUEADO = datetime.now() > FECHA_LIMITE_TEMPORADA
-GPS = ["GP Bahrein", "GP Arabia Saudí", "GP Australia", "GP Japón", "GP China", "GP Miami", "GP Mónaco", "GP España"]
+GPS = [
+    "01. GP de Australia", 
+    "02. GP de China", 
+    "03. GP de Japón", 
+    "04. GP de Baréin",
+    "05. GP de Arabia Saudita", 
+    "06. GP de Miami", 
+    "07. GP de Canadá", 
+    "08. GP de Mónaco",
+    "09. GP de Barcelona-Cataluña", 
+    "10. GP de Austria", 
+    "11. GP de Gran Bretaña", 
+    "12. GP de Bélgica",
+    "13. GP de Hungría", 
+    "14. GP de los Países Bajos", 
+    "15. GP de Italia", 
+    "16. GP de España (Madrid)",
+    "17. GP de Azerbaiyán", 
+    "18. GP de Singapur", 
+    "19. GP de Estados Unidos", 
+    "20. GP de Ciudad de México",
+    "21. GP de São Paulo", 
+    "22. GP de Las Vegas", 
+    "23. GP de Catar", 
+    "24. GP de Abu Dabi"
+]
 
+# También actualizamos la fecha límite del Mundial (Australia es el 8 de marzo)
+# Ponemos el cierre el 8 de marzo a las 05:00 AM (antes de la carrera)
+FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 8, 5, 0)
+MUNDIAL_BLOQUEADO = datetime.now() > FECHA_LIMITE_TEMPORADA
 # 2. FUNCIONES DE CÁLCULO
 def calcular_puntos_gp(u_preds, gp_results):
     pts = 0.0
