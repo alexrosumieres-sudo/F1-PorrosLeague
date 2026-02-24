@@ -114,7 +114,7 @@ else:
     gp_sel = st.sidebar.selectbox("Gran Premio", GPS)
     
     # AQUÍ SE DEFINEN LAS TABS
-    tab1, tab2, tab3 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "⚙️ Admin"])
+    tab1, tab2, tab3, tab4 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin"])
 
     with tab1:
         st.header(f"Tus predicciones - {gp_sel}")
@@ -151,7 +151,7 @@ else:
             ranking.append({"Piloto": user, "Puntos": pts})
         st.table(pd.DataFrame(ranking).sort_values("Puntos", ascending=False))
 
-    with tab3:
+    with tab4:
         if st.session_state.rol == 'admin':
             with st.form("admin"):
                 rq = [st.selectbox(f"Q{i+1} Real", PILOTOS) for i in range(5)]
@@ -164,7 +164,7 @@ else:
                     df_r = df_r[df_r['GP'] != gp_sel]
                     conn.update(worksheet="Resultados", data=pd.concat([df_r, pd.DataFrame(res)]))
                     st.success("OK")
-with tab4: # NUEVA PESTAÑA MUNDIAL
+with tab3: # NUEVA PESTAÑA MUNDIAL
     st.header("🏆 Predicciones de Temporada 2026")
     st.info("Estas apuestas se cierran antes de la primera carrera y valen para el final del campeonato.")
     
