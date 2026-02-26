@@ -47,6 +47,8 @@ GPS = [
 # Ponemos el cierre el 8 de marzo a las 05:00 AM (antes de la carrera)
 FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 8, 5, 0)
 MUNDIAL_BLOQUEADO = datetime.now() > FECHA_LIMITE_TEMPORADA
+
+
 # 2. FUNCIONES DE CÁLCULO
 # 2. FUNCIONES DE CÁLCULO DEFINITIVAS
 
@@ -346,13 +348,57 @@ else:
 
     with tab3:
         st.header("🏆 Mundial de Temporada")
-        st.warning("🔒 El periodo de predicciones para el Mundial ha finalizado.")
-        df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
-        if not df_u_temp.empty:
-            st.write("Tus predicciones guardadas:")
-            st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
+        
+        # 1. Si está bloqueado, solo mostramos lo que el usuario guardó
+        if MUNDIAL_BLOQUEADO:
+            st.warning("🔒 El periodo de predicciones para el Mundial ha finalizado.")
+            df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
+            if not df_u_temp.empty:
+                st.subheader("Tus predicciones registradas:")
+                st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
+            else:
+                st.info("No realizaste predicciones para esta temporada.")
+        
+        # 2. Si NO está bloqueado, mostramos el formulario para votar
         else:
-            st.info("No realizaste predicciones para el Mundial.")
+            st.success(f"⏳ Tienes hasta el {FECHA_LIMITE_TEMPORADA.strftime('%d/%m')} para enviar o cambiar tu mundial.")
+            df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
+
+            with st.form("form_mundial_abierto"):
+                col_p, col_e = st.columns(2)
+                
+                with col_p:
+                    st.subheader("👤 Pilotos")
+                    pred_p = []
+                    for i in range(22):
+                        match_p = df_u_temp[df_u_temp['Variable'] == f"P{i+1}"]
+                        val_p = match_p.iloc[0]['Valor'] if not match_p.empty else "- Seleccionar -"
+                        idx = OPCIONES_PILOTOS.index(val_p) if val_p in OPCIONES_PILOTOS else 0
+                        pred_p.append(st.selectbox(f"P{i+1}", OPCIONES_PILOTOS, index=idx, key=f"temp_p_{i}"))
+
+                with col_e:
+                    st.subheader("🏎️ Equipos")
+                    pred_e = []
+                    for i in range(11):
+                        match_e = df_u_temp[df_u_temp['Variable'] == f"E{i+1}"]
+                        val_e = match_e.iloc[0]['Valor'] if not match_e.empty else "- Seleccionar -"
+                        idx = OPCIONES_EQUIPOS.index(val_e) if val_e in OPCIONES_EQUIPOS else 0
+                        pred_e.append(st.selectbox(f"E{i+1}", OPCIONES_EQUIPOS, index=idx, key=f"temp_e_{i}"))
+
+                if st.form_submit_button("💾 Guardar Predicciones Mundial"):
+                    if "- Seleccionar -" in pred_p or "- Seleccionar -" in pred_e:
+                        st.error("⚠️ Debes rellenar todas las posiciones.")
+                    elif len(set(pred_p)) < 22 or len(set(pred_e)) < 11:
+                        st.error("⚠️ No puedes repetir pilotos o equipos en la clasificación.")
+                    else:
+                        m_data = []
+                        for i, v in enumerate(pred_p): m_data.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
+                        for i, v in enumerate(pred_e): m_data.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
+                        
+                        df_temp = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(m_data)])
+                        conn.update(worksheet="Temporada", data=df_temp)
+                        st.success("✅ ¡Mundial guardado con éxito!")
+                        st.rerun()
 
     with tab4:
         if st.session_state.rol == 'admin':
@@ -404,22 +450,22 @@ else:
 
             with adm_final:
                 st.subheader("Resultados Finales del Campeonato")
-                st.info("Solo rellenar al final de la temporada.")
+                st.info("Rellenar únicamente al finalizar Abu Dabi.")
                 with st.form("admin_mundial_final"):
                     am1, am2 = st.columns(2)
-                    # Usamos listas OPCIONES con index=0
-                    f_p = [am1.selectbox(f"P{i+1} Mundial", OPCIONES_PILOTOS, index=0, key=f"fp{i}") for i in range(22)]
-                    f_e = [am2.selectbox(f"E{i+1} Mundial", OPCIONES_EQUIPOS, index=0, key=f"fe{i}") for i in range(11)]
+                    f_p = [am1.selectbox(f"P{i+1} Final", OPCIONES_PILOTOS, index=0, key=f"fin_p_{i}") for i in range(22)]
+                    f_e = [am2.selectbox(f"E{i+1} Final", OPCIONES_EQUIPOS, index=0, key=f"fin_e_{i}") for i in range(11)]
                     
-                    if st.form_submit_button("🏆 Publicar Mundial Final"):
+                    if st.form_submit_button("🏆 Publicar Mundial"):
                         if "- Seleccionar -" in f_p or "- Seleccionar -" in f_e:
-                            st.error("⚠️ Debes completar toda la parrilla final.")
+                            st.error("⚠️ El Admin debe completar toda la tabla.")
                         else:
                             m_f = []
                             for i, v in enumerate(f_p): m_f.append({"Variable": f"P{i+1}", "Valor": v})
                             for i, v in enumerate(f_e): m_f.append({"Variable": f"E{i+1}", "Valor": v})
+                            # Guardamos en la hoja 'ResultadosMundial'
                             conn.update(worksheet="ResultadosMundial", data=pd.DataFrame(m_f))
-                            st.success("🏆 Resultados finales guardados correctamente.")
+                            st.success("🏆 Resultados finales guardados.")
 
             with adm_fechas:
                 st.subheader("Configurar Cierres")
