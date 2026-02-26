@@ -286,6 +286,8 @@ else:
                 with cc1:
                     c_res_raw = [st.selectbox(f"P{i+1} Carrera", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"C{i+1}")), key=f"c_u_{i}", disabled=c_bloq) for i in range(5)]
                 with cc2:
+                    OPCIONES_PILOTOS = ["- Seleccionar -"] + PILOTOS_2026
+                    OPCIONES_EQUIPOS = ["- Seleccionar -"] + EQUIPOS_2026
                     OPCIONES_BINARIAS = ["- Seleccionar -", "SI", "NO"]
                     POSICIONES_CARRERA = ["- Seleccionar -", "DNF"] + [str(i) for i in range(1, 23)]
                     alo = st.selectbox("Pos. Alonso", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Alonso")), disabled=c_bloq)
