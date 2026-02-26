@@ -51,6 +51,12 @@ PILOTO_A_EQUIPO = {
 
 PILOTOS_CON_EMOJI = ["- Seleccionar -"] + [f"{EQUIPOS_DATA[PILOTO_A_EQUIPO[p]]['emoji']} {p}" for p in PILOTOS_2026]
 
+# --- LISTAS DE OPCIONES GLOBALES (Para que el Admin no dé error) ---
+OPCIONES_PILOTOS = ["- Seleccionar -"] + PILOTOS_2026
+OPCIONES_EQUIPOS = ["- Seleccionar -"] + EQUIPOS_2026
+OPCIONES_BINARIAS = ["- Seleccionar -", "SI", "NO"]
+POSICIONES_CARRERA = ["- Seleccionar -", "DNF"] + [str(i) for i in range(1, 23)]
+
 # Fecha límite Mundial
 FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 8, 5, 0)
 MUNDIAL_BLOQUEADO = datetime.now() > FECHA_LIMITE_TEMPORADA
@@ -205,36 +211,25 @@ else:
     cal_row = df_cal[df_cal['GP'] == gp_sel]
     now = datetime.now()
 
-    # Inicializamos estados por defecto
     q_bloq, s_bloq, c_bloq = False, False, False
     
     if not cal_row.empty:
-        # Extraemos las fechas límite del calendario
         q_lim = pd.to_datetime(cal_row.iloc[0]['LimiteQualy'])
         c_lim = pd.to_datetime(cal_row.iloc[0]['LimiteCarrera'])
         
-        # Función interna para el cálculo del tiempo restante
         def obtener_countdown(fecha_limite):
             diff = fecha_limite - now
-            if diff.total_seconds() <= 0:
-                return "🔴 Cerrada"
-            
+            if diff.total_seconds() <= 0: return "🔴 Cerrada"
             dias = diff.days
             horas, rem = divmod(diff.seconds, 3600)
             minutos, _ = divmod(rem, 60)
-            
-            if dias > 0:
-                return f"🟢 Cierra en {dias}d {horas}h"
-            elif horas > 0:
-                return f"⏳ ¡Date prisa! Cierra en {horas}h {minutos}m"
-            else:
-                return f"🔥 ¡ÚLTIMOS MINUTOS! {minutos}m restantes"
+            if dias > 0: return f"🟢 Cierra en {dias}d {horas}h"
+            elif horas > 0: return f"⏳ ¡Date prisa! Cierra en {horas}h {minutos}m"
+            else: return f"🔥 ¡ÚLTIMOS MINUTOS! {minutos}m restantes"
 
-        # Aplicamos bloqueos reales para los formularios
         q_bloq = now > q_lim
         c_bloq = now > c_lim
 
-        # Mostramos los contadores en la Sidebar
         st.sidebar.markdown("---")
         st.sidebar.subheader("⏱️ Clasificación")
         st.sidebar.markdown(f"**{obtener_countdown(q_lim)}**")
@@ -248,14 +243,14 @@ else:
         st.sidebar.subheader("🏁 Carrera")
         st.sidebar.markdown(f"**{obtener_countdown(c_lim)}**")
         st.sidebar.markdown("---")
-        
     else:
-        st.sidebar.warning("⚠️ Fechas límite no configuradas para este GP")
+        st.sidebar.warning("⚠️ Horarios no configurados")
 
     if st.sidebar.button("Cerrar Sesión"):
         st.session_state.auth = False
         st.rerun()
 
+    # --- DEFINICIÓN DE PESTAÑAS ---
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin", "🔍 El Muro"])
 
     with tab1:
@@ -286,10 +281,6 @@ else:
                 with cc1:
                     c_res_raw = [st.selectbox(f"P{i+1} Carrera", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"C{i+1}")), key=f"c_u_{i}", disabled=c_bloq) for i in range(5)]
                 with cc2:
-                    OPCIONES_PILOTOS = ["- Seleccionar -"] + PILOTOS_2026
-                    OPCIONES_EQUIPOS = ["- Seleccionar -"] + EQUIPOS_2026
-                    OPCIONES_BINARIAS = ["- Seleccionar -", "SI", "NO"]
-                    POSICIONES_CARRERA = ["- Seleccionar -", "DNF"] + [str(i) for i in range(1, 23)]
                     alo = st.selectbox("Pos. Alonso", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Alonso")), disabled=c_bloq)
                     sai = st.selectbox("Pos. Sainz Jr.", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Sainz")), disabled=c_bloq)
                     saf = st.selectbox("¿Safety Car?", OPCIONES_BINARIAS, index=OPCIONES_BINARIAS.index(get_val("Safety")), disabled=c_bloq)
@@ -510,7 +501,6 @@ else:
                     ac1, ac2 = st.columns(2)
                     with ac1:
                         st.markdown("**Top 5 Clasificación**")
-                        # Usamos PILOTOS_CON_EMOJI para que el Admin lo vea igual que el usuario
                         aq_raw = [st.selectbox(f"Q{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arq{i}") for i in range(5)]
                         st.markdown("**Top 5 Carrera**")
                         ac_raw = [st.selectbox(f"C{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arc{i}") for i in range(5)]
@@ -529,15 +519,14 @@ else:
                             as_raw = [st.selectbox(f"S{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arsprint{i}") for i in range(3)]
                     
                     if st.form_submit_button("📢 Publicar Resultados"):
-                        # LIMPIEZA DE EMOJIS: Guardamos solo el nombre del piloto
+                        # Limpiamos los emojis antes de guardar en la base de datos
                         aq = [v.split(" ", 1)[-1] for v in aq_raw]
                         ac = [v.split(" ", 1)[-1] for v in ac_raw]
                         as_res = [v.split(" ", 1)[-1] for v in as_raw]
                         
                         check_list = aq + ac + as_res + [res_alo, res_sai, res_sf, res_rf]
-                        
                         if "- Seleccionar -" in check_list:
-                            st.error("⚠️ Error: El Admin debe seleccionar todos los campos reales.")
+                            st.error("⚠️ Error: Selecciona todos los resultados.")
                         else:
                             r_data = []
                             for i, v in enumerate(aq): r_data.append({"GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
@@ -551,40 +540,34 @@ else:
                             ])
                             df_r = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(r_data)])
                             conn.update(worksheet="Resultados", data=df_r)
-                            st.success(f"✅ Resultados de {gp_sel} publicados con éxito.")
-                            st.balloons() # Pequeño efecto visual de éxito
+                            st.success(f"✅ Resultados de {gp_sel} publicados.")
+                            st.balloons()
 
-            # --- SUBPESTAÑA MUNDIAL FINAL ---
             with adm_final:
                 st.subheader("Resultados Finales del Campeonato")
-                st.info("Solo rellenar tras el GP de Abu Dabi.")
                 with st.form("admin_mundial_final"):
                     am1, am2 = st.columns(2)
-                    # Aquí también usamos la lista con emojis para facilitar el trabajo del admin
                     f_p_raw = [am1.selectbox(f"P{i+1} Mundial", PILOTOS_CON_EMOJI, index=0, key=f"fin_p_{i}") for i in range(22)]
                     f_e = [am2.selectbox(f"E{i+1} Mundial", OPCIONES_EQUIPOS, index=0, key=f"fin_e_{i}") for i in range(11)]
-                    
                     if st.form_submit_button("🏆 Publicar Mundial Final"):
                         f_p = [v.split(" ", 1)[-1] for v in f_p_raw]
                         if "- Seleccionar -" in f_p or "- Seleccionar -" in f_e:
-                            st.error("⚠️ Debes completar toda la parrilla final.")
+                            st.error("⚠️ Parrilla incompleta.")
                         else:
                             m_f = []
                             for i, v in enumerate(f_p): m_f.append({"Variable": f"P{i+1}", "Valor": v})
                             for i, v in enumerate(f_e): m_f.append({"Variable": f"E{i+1}", "Valor": v})
                             conn.update(worksheet="ResultadosMundial", data=pd.DataFrame(m_f))
-                            st.success("🏆 Resultados del mundial guardados.")
+                            st.success("🏆 Resultados mundiales guardados.")
 
-            # --- SUBPESTAÑA FECHAS ---
             with adm_fechas:
-                st.subheader("Configurar Horarios de Cierre")
+                st.subheader("Configurar Horarios")
                 with st.form("f_cal_admin"):
                     f_gp = st.selectbox("Gran Premio", GPS, key="f_gp_cal")
                     c_q, c_s, c_c = st.columns(3)
                     dq, tq = c_q.date_input("Fecha Qualy"), c_q.time_input("Hora Qualy")
                     ds, ts = c_s.date_input("Fecha Sprint"), c_s.time_input("Hora Sprint")
                     dc, tc = c_c.date_input("Fecha Carrera"), c_c.time_input("Hora Carrera")
-                    
                     if st.form_submit_button("📅 Guardar Calendario"):
                         c_data = {
                             "GP": f_gp, 
