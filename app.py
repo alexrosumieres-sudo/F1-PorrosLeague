@@ -42,15 +42,6 @@ GPS = [
     "23. GP de Catar", 
     "24. GP de Abu Dabi"
 ]
-
-¡Esto va a quedar increíble! Vamos a transformar la app en el "Race Control" de vuestra liga.
-
-He preparado los tres cambios integrados. Para que el Punto 2 (Logos en el Ranking) funcione, he modificado ligeramente el registro para que cada uno elija su escudería.
-
-1. Preparación de Datos y Estilo (Copia esto al principio, tras los imports)
-Sustituye tus listas de pilotos y añade este bloque de configuración visual:
-
-Python
 # --- CONFIGURACIÓN VISUAL F1 ---
 EQUIPOS_DATA = {
     "McLaren": {"emoji": "🟠", "color": "#FF8000", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/mclaren-logo.png"},
