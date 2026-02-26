@@ -278,46 +278,90 @@ else:
                         st.success("✅ ¡Guardado!")
 
     with tab2:
-        st.header("📊 Clasificación General")
-        df_users_ranking = leer_datos("Usuarios") # Cargamos usuarios para sacar los logos
-        
-        if not df_users_ranking.empty:
-            participantes = df_users_ranking[df_users_ranking['Rol'] == 'user']['Usuario'].unique()
-            ranking_list = []
+        # Creamos las subpestañas dentro de Clasificación
+        subtab_gen, subtab_gp = st.tabs(["🌎 Clasificación General", "🏁 Resultados por Carrera"])
+
+        # --- SUBPESTAÑA 1: GENERAL ---
+        with subtab_gen:
+            st.subheader("Clasificación Mundial de Pilotos")
+            df_users_ranking = leer_datos("Usuarios")
             
-            for u in participantes:
-                # Calculamos puntos de todos los GPs disputados
-                p_gps = sum([calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g]) for g in GPS])
-                # Sumamos el bonus del mundial final (si el admin ya lo ha subido)
-                p_mundial = calcular_puntos_mundial(df_temp[df_temp['Usuario']==u], df_r_mundial)
+            if not df_users_ranking.empty:
+                participantes = df_users_ranking[df_users_ranking['Rol'] == 'user']['Usuario'].unique()
+                ranking_list = []
                 
-                ranking_list.append({"Piloto": u, "GPs": p_gps, "Mundial": p_mundial, "TOTAL": p_gps + p_mundial})
-            
-            df_final = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
-            
-            # Función para asignar el logo de escudería de cada usuario
-            def get_logo(usuario):
-                row = df_users_ranking[df_users_ranking['Usuario'] == usuario]
-                if not row.empty and 'Equipo' in row.columns:
-                    team = row['Equipo'].values[0]
-                    return EQUIPOS_DATA.get(team, {}).get('logo', "")
-                return ""
+                for u in participantes:
+                    p_gps = sum([calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g]) for g in GPS])
+                    p_mundial = calcular_puntos_mundial(df_temp[df_temp['Usuario']==u], df_r_mundial)
+                    ranking_list.append({"Piloto": u, "GPs": p_gps, "Bonus": p_mundial, "TOTAL": p_gps + p_mundial})
+                
+                df_final = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
+                
+                def get_logo(usuario):
+                    row = df_users_ranking[df_users_ranking['Usuario'] == usuario]
+                    if not row.empty and 'Equipo' in row.columns:
+                        team = row['Equipo'].values[0]
+                        return EQUIPOS_DATA.get(team, {}).get('logo', "")
+                    return ""
 
-            df_final["Escudería"] = df_final["Piloto"].apply(get_logo)
-            df_final.insert(0, "Pos", range(1, len(df_final) + 1))
+                df_final["Escudería"] = df_final["Piloto"].apply(get_logo)
+                df_final.insert(0, "Pos", range(1, len(df_final) + 1))
 
-            # Tabla PRO con logos e imágenes
-            st.dataframe(
-                df_final[["Pos", "Escudería", "Piloto", "GPs", "Mundial", "TOTAL"]],
-                column_config={
-                    "Escudería": st.column_config.ImageColumn("Team"),
-                    "TOTAL": st.column_config.NumberColumn("Puntos", format="%d pts 🏁"),
-                    "GPs": st.column_config.NumberColumn("Carreras"),
-                    "Mundial": st.column_config.NumberColumn("Bonus")
-                },
-                use_container_width=True,
-                hide_index=True
-            )
+                st.dataframe(
+                    df_final[["Pos", "Escudería", "Piloto", "GPs", "Bonus", "TOTAL"]],
+                    column_config={
+                        "Escudería": st.column_config.ImageColumn("Team"),
+                        "TOTAL": st.column_config.NumberColumn("Puntos", format="%d pts 🏁"),
+                    },
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+        # --- SUBPESTAÑA 2: POR CARRERA ---
+        with subtab_gp:
+            st.subheader("Análisis de Rendimiento por GP")
+            gp_ranking_sel = st.selectbox("Seleccionar Gran Premio para ver detalles", GPS, key="gp_rank_sel")
+            
+            # Obtenemos resultados reales de ese GP
+            results_gp_real = df_r[df_r['GP'] == gp_ranking_sel]
+            
+            if results_gp_real.empty:
+                st.info(f"Aún no se han publicado resultados reales para el {gp_ranking_sel}.")
+            else:
+                gp_ranking_data = []
+                for u in participantes:
+                    # Usamos detalle=True para obtener el desglose
+                    det = calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==gp_ranking_sel)], results_gp_real, detalle=True)
+                    
+                    gp_ranking_data.append({
+                        "Piloto": u,
+                        "Qualy": det["Qualy"],
+                        "Sprint": det["Sprint"],
+                        "Carrera": det["Carrera"],
+                        "Extras": det["Extras"],
+                        "Total GP": sum(det.values())
+                    })
+                
+                df_gp_rank = pd.DataFrame(gp_ranking_data).sort_values("Total GP", ascending=False)
+                df_gp_rank["Escudería"] = df_gp_rank["Piloto"].apply(get_logo)
+                df_gp_rank.insert(0, "Pos", range(1, len(df_gp_rank) + 1))
+                
+                # Configuración de colores para el desglose
+                st.dataframe(
+                    df_gp_rank[["Pos", "Escudería", "Piloto", "Qualy", "Sprint", "Carrera", "Extras", "Total GP"]],
+                    column_config={
+                        "Escudería": st.column_config.ImageColumn("Team"),
+                        "Qualy": st.column_config.NumberColumn("⏱️ Q"),
+                        "Sprint": st.column_config.NumberColumn("⚡ S"),
+                        "Carrera": st.column_config.NumberColumn("🏁 C"),
+                        "Extras": st.column_config.NumberColumn("🎲 +"),
+                        "Total GP": st.column_config.NumberColumn("Total", format="%d pts")
+                    },
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                st.caption("💡 **Abreviaturas:** Q (Qualy), S (Sprint), C (Carrera), + (Alonso/Sainz/Eventos)")
 
     with tab3:
         st.header("🏆 Mundial de Temporada")
