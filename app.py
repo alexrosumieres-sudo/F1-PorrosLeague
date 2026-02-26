@@ -349,56 +349,63 @@ else:
     with tab3:
         st.header("🏆 Mundial de Temporada")
         
-        # 1. Si está bloqueado, solo mostramos lo que el usuario guardó
-        if MUNDIAL_BLOQUEADO:
-            st.warning("🔒 El periodo de predicciones para el Mundial ha finalizado.")
-            df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
-            if not df_u_temp.empty:
-                st.subheader("Tus predicciones registradas:")
-                st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
-            else:
-                st.info("No realizaste predicciones para esta temporada.")
+        # 1. BLOQUEO PARA ADMINS
+        if st.session_state.rol == 'admin':
+            st.warning("⚠️ Los administradores no participan en las predicciones del mundial.")
+            st.info("Desde la pestaña 'Admin' puedes gestionar los resultados finales cuando acabe la temporada.")
         
-        # 2. Si NO está bloqueado, mostramos el formulario para votar
+        # 2. LÓGICA PARA USUARIOS
         else:
-            st.success(f"⏳ Tienes hasta el {FECHA_LIMITE_TEMPORADA.strftime('%d/%m')} para enviar o cambiar tu mundial.")
-            df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
+            # Caso A: El mundial ya ha empezado (Bloqueado)
+            if MUNDIAL_BLOQUEADO:
+                st.warning("🔒 El periodo de predicciones para el Mundial ha finalizado.")
+                df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
+                if not df_u_temp.empty:
+                    st.subheader("Tus predicciones registradas:")
+                    st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
+                else:
+                    st.info("No realizaste predicciones para esta temporada.")
+            
+            # Caso B: El mundial NO ha empezado (Formulario Abierto)
+            else:
+                st.success(f"⏳ Tienes hasta el {FECHA_LIMITE_TEMPORADA.strftime('%d/%m')} para enviar o cambiar tu mundial.")
+                df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
 
-            with st.form("form_mundial_abierto"):
-                col_p, col_e = st.columns(2)
-                
-                with col_p:
-                    st.subheader("👤 Pilotos")
-                    pred_p = []
-                    for i in range(22):
-                        match_p = df_u_temp[df_u_temp['Variable'] == f"P{i+1}"]
-                        val_p = match_p.iloc[0]['Valor'] if not match_p.empty else "- Seleccionar -"
-                        idx = OPCIONES_PILOTOS.index(val_p) if val_p in OPCIONES_PILOTOS else 0
-                        pred_p.append(st.selectbox(f"P{i+1}", OPCIONES_PILOTOS, index=idx, key=f"temp_p_{i}"))
+                with st.form("form_mundial_abierto"):
+                    col_p, col_e = st.columns(2)
+                    
+                    with col_p:
+                        st.subheader("👤 Pilotos")
+                        pred_p = []
+                        for i in range(22):
+                            match_p = df_u_temp[df_u_temp['Variable'] == f"P{i+1}"]
+                            val_p = match_p.iloc[0]['Valor'] if not match_p.empty else "- Seleccionar -"
+                            idx = OPCIONES_PILOTOS.index(val_p) if val_p in OPCIONES_PILOTOS else 0
+                            pred_p.append(st.selectbox(f"P{i+1}", OPCIONES_PILOTOS, index=idx, key=f"temp_p_{i}"))
 
-                with col_e:
-                    st.subheader("🏎️ Equipos")
-                    pred_e = []
-                    for i in range(11):
-                        match_e = df_u_temp[df_u_temp['Variable'] == f"E{i+1}"]
-                        val_e = match_e.iloc[0]['Valor'] if not match_e.empty else "- Seleccionar -"
-                        idx = OPCIONES_EQUIPOS.index(val_e) if val_e in OPCIONES_EQUIPOS else 0
-                        pred_e.append(st.selectbox(f"E{i+1}", OPCIONES_EQUIPOS, index=idx, key=f"temp_e_{i}"))
+                    with col_e:
+                        st.subheader("🏎️ Equipos")
+                        pred_e = []
+                        for i in range(11):
+                            match_e = df_u_temp[df_u_temp['Variable'] == f"E{i+1}"]
+                            val_e = match_e.iloc[0]['Valor'] if not match_e.empty else "- Seleccionar -"
+                            idx = OPCIONES_EQUIPOS.index(val_e) if val_e in OPCIONES_EQUIPOS else 0
+                            pred_e.append(st.selectbox(f"E{i+1}", OPCIONES_EQUIPOS, index=idx, key=f"temp_e_{i}"))
 
-                if st.form_submit_button("💾 Guardar Predicciones Mundial"):
-                    if "- Seleccionar -" in pred_p or "- Seleccionar -" in pred_e:
-                        st.error("⚠️ Debes rellenar todas las posiciones.")
-                    elif len(set(pred_p)) < 22 or len(set(pred_e)) < 11:
-                        st.error("⚠️ No puedes repetir pilotos o equipos en la clasificación.")
-                    else:
-                        m_data = []
-                        for i, v in enumerate(pred_p): m_data.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
-                        for i, v in enumerate(pred_e): m_data.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
-                        
-                        df_temp = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(m_data)])
-                        conn.update(worksheet="Temporada", data=df_temp)
-                        st.success("✅ ¡Mundial guardado con éxito!")
-                        st.rerun()
+                    if st.form_submit_button("💾 Guardar Predicciones Mundial"):
+                        if "- Seleccionar -" in pred_p or "- Seleccionar -" in pred_e:
+                            st.error("⚠️ Debes rellenar todas las posiciones.")
+                        elif len(set(pred_p)) < 22 or len(set(pred_e)) < 11:
+                            st.error("⚠️ No puedes repetir pilotos o equipos en la clasificación.")
+                        else:
+                            m_data = []
+                            for i, v in enumerate(pred_p): m_data.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
+                            for i, v in enumerate(pred_e): m_data.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
+                            
+                            df_temp = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(m_data)])
+                            conn.update(worksheet="Temporada", data=df_temp)
+                            st.success("✅ ¡Mundial guardado con éxito!")
+                            st.rerun()
 
     with tab4:
         if st.session_state.rol == 'admin':
