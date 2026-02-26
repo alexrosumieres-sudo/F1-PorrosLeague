@@ -510,25 +510,32 @@ else:
                     ac1, ac2 = st.columns(2)
                     with ac1:
                         st.markdown("**Top 5 Clasificación**")
-                        aq = [st.selectbox(f"Q{i+1} Real", ["- Seleccionar -"] + PILOTOS_2026, index=0, key=f"arq{i}") for i in range(5)]
+                        # Usamos PILOTOS_CON_EMOJI para que el Admin lo vea igual que el usuario
+                        aq_raw = [st.selectbox(f"Q{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arq{i}") for i in range(5)]
                         st.markdown("**Top 5 Carrera**")
-                        ac = [st.selectbox(f"C{i+1} Real", ["- Seleccionar -"] + PILOTOS_2026, index=0, key=f"arc{i}") for i in range(5)]
+                        ac_raw = [st.selectbox(f"C{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arc{i}") for i in range(5)]
                     
                     with ac2:
                         st.markdown("**Eventos y Españoles**")
                         res_alo = st.selectbox("Alonso Real", POSICIONES_CARRERA, index=0, key="ara_adm")
                         res_sai = st.selectbox("Sainz Real", POSICIONES_CARRERA, index=0, key="ars_adm")
-                        res_sf = st.selectbox("Safety / VSC Real", ["- Seleccionar -", "SI", "NO"], index=0, key="arsf_adm")
-                        res_rf = st.selectbox("Red Flag Real", ["- Seleccionar -", "SI", "NO"], index=0, key="arrf_adm")
+                        res_sf = st.selectbox("Safety / VSC Real", OPCIONES_BINARIAS, index=0, key="arsf_adm")
+                        res_rf = st.selectbox("Red Flag Real", OPCIONES_BINARIAS, index=0, key="arrf_adm")
                         
-                        as_res = []
+                        as_raw = []
                         if es_sprint:
                             st.markdown("---")
                             st.markdown("**Top 3 Sprint**")
-                            as_res = [st.selectbox(f"S{i+1} Real", ["- Seleccionar -"] + PILOTOS_2026, index=0, key=f"arsprint{i}") for i in range(3)]
+                            as_raw = [st.selectbox(f"S{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arsprint{i}") for i in range(3)]
                     
                     if st.form_submit_button("📢 Publicar Resultados"):
+                        # LIMPIEZA DE EMOJIS: Guardamos solo el nombre del piloto
+                        aq = [v.split(" ", 1)[-1] for v in aq_raw]
+                        ac = [v.split(" ", 1)[-1] for v in ac_raw]
+                        as_res = [v.split(" ", 1)[-1] for v in as_raw]
+                        
                         check_list = aq + ac + as_res + [res_alo, res_sai, res_sf, res_rf]
+                        
                         if "- Seleccionar -" in check_list:
                             st.error("⚠️ Error: El Admin debe seleccionar todos los campos reales.")
                         else:
@@ -544,17 +551,21 @@ else:
                             ])
                             df_r = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(r_data)])
                             conn.update(worksheet="Resultados", data=df_r)
-                            st.success(f"✅ Resultados de {gp_sel} publicados.")
+                            st.success(f"✅ Resultados de {gp_sel} publicados con éxito.")
+                            st.balloons() # Pequeño efecto visual de éxito
 
+            # --- SUBPESTAÑA MUNDIAL FINAL ---
             with adm_final:
                 st.subheader("Resultados Finales del Campeonato")
                 st.info("Solo rellenar tras el GP de Abu Dabi.")
                 with st.form("admin_mundial_final"):
                     am1, am2 = st.columns(2)
-                    f_p = [am1.selectbox(f"P{i+1} Mundial", ["- Seleccionar -"] + PILOTOS_2026, index=0, key=f"fin_p_{i}") for i in range(22)]
-                    f_e = [am2.selectbox(f"E{i+1} Mundial", ["- Seleccionar -"] + EQUIPOS_2026, index=0, key=f"fin_e_{i}") for i in range(11)]
+                    # Aquí también usamos la lista con emojis para facilitar el trabajo del admin
+                    f_p_raw = [am1.selectbox(f"P{i+1} Mundial", PILOTOS_CON_EMOJI, index=0, key=f"fin_p_{i}") for i in range(22)]
+                    f_e = [am2.selectbox(f"E{i+1} Mundial", OPCIONES_EQUIPOS, index=0, key=f"fin_e_{i}") for i in range(11)]
                     
                     if st.form_submit_button("🏆 Publicar Mundial Final"):
+                        f_p = [v.split(" ", 1)[-1] for v in f_p_raw]
                         if "- Seleccionar -" in f_p or "- Seleccionar -" in f_e:
                             st.error("⚠️ Debes completar toda la parrilla final.")
                         else:
@@ -564,6 +575,7 @@ else:
                             conn.update(worksheet="ResultadosMundial", data=pd.DataFrame(m_f))
                             st.success("🏆 Resultados del mundial guardados.")
 
+            # --- SUBPESTAÑA FECHAS ---
             with adm_fechas:
                 st.subheader("Configurar Horarios de Cierre")
                 with st.form("f_cal_admin"):
