@@ -198,60 +198,6 @@ else:
     if df_cal.empty: df_cal = pd.DataFrame(columns=['GP', 'LimiteQualy', 'LimiteSprint', 'LimiteCarrera'])
 
     # --- LÓGICA DE BLOQUEO ---
-    # --- LÓGICA DE SELECCIÓN Y BLOQUEO CON COUNTDOWN ---
-    st.sidebar.title(f"Piloto: {st.session_state.user}")
-    gp_sel = st.sidebar.selectbox("Gran Premio", GPS)
-    
-    es_sprint = gp_sel in SPRINT_GPS
-    cal_row = df_cal[df_cal['GP'] == gp_sel]
-    now = datetime.now()
-
-    q_bloq, s_bloq, c_bloq = False, False, False
-    
-    if not cal_row.empty:
-        # Convertimos las fechas del Excel a objetos datetime
-        q_lim = pd.to_datetime(cal_row.iloc[0]['LimiteQualy'])
-        c_lim = pd.to_datetime(cal_row.iloc[0]['LimiteCarrera'])
-        
-        # --- FUNCIÓN PARA GENERAR EL TEXTO DEL RELOJ ---
-        def obtener_countdown(fecha_limite):
-            diff = fecha_limite - now
-            if diff.total_seconds() <= 0:
-                return "🔴 Cerrada"
-            
-            dias = diff.days
-            horas, rem = divmod(diff.seconds, 3600)
-            minutos, _ = divmod(rem, 60)
-            
-            if dias > 0:
-                return f"🟢 Cierra en {dias}d {horas}h"
-            elif horas > 0:
-                return f"⏳ ¡Date prisa! Cierra en {horas}h {minutos}m"
-            else:
-                return f"🔥 ¡ÚLTIMOS MINUTOS! {minutos}m restantes"
-
-        # 1. QUALY
-        q_bloq = now > q_lim
-        st.sidebar.subheader("⏱️ Clasificación")
-        st.sidebar.markdown(f"**{obtener_countdown(q_lim)}**")
-        st.sidebar.caption(f"Límite: {q_lim.strftime('%H:%M (%d/%m)')}")
-
-        # 2. SPRINT (Si aplica)
-        if es_sprint:
-            s_lim = pd.to_datetime(cal_row.iloc[0]['LimiteSprint'])
-            s_bloq = now > s_lim
-            st.sidebar.subheader("🏎️ Sprint")
-            st.sidebar.markdown(f"**{obtener_countdown(s_lim)}**")
-            st.sidebar.caption(f"Límite: {s_lim.strftime('%H:%M (%d/%m)')}")
-
-        # 3. CARRERA
-        c_bloq = now > c_lim
-        st.sidebar.subheader("🏁 Carrera")
-        st.sidebar.markdown(f"**{obtener_countdown(c_lim)}**")
-        st.sidebar.caption(f"Límite: {c_lim.strftime('%H:%M (%d/%m)')}")
-        
-    else:
-        st.sidebar.warning("⚠️ Fechas límite no configuradas")
     st.sidebar.title(f"Piloto: {st.session_state.user}")
     gp_sel = st.sidebar.selectbox("Gran Premio", GPS)
     es_sprint = gp_sel in SPRINT_GPS
