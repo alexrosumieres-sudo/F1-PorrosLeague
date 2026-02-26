@@ -278,90 +278,119 @@ else:
                         st.success("✅ ¡Guardado!")
 
     with tab2:
-        # Creamos las subpestañas dentro de Clasificación
-        subtab_gen, subtab_gp = st.tabs(["🌎 Clasificación General", "🏁 Resultados por Carrera"])
+        # --- ESTILOS CSS EXTRA PARA LAS CARDS ---
+        st.markdown("""
+            <style>
+            .podium-container { display: flex; align-items: flex-end; justify-content: center; gap: 20px; padding: 20px; background: #0e0e12; border-radius: 15px; margin-bottom: 30px; border: 1px solid #333; }
+            .podium-card { text-align: center; padding: 15px; border-radius: 10px; background: #1a1a24; position: relative; width: 100%; }
+            .p1 { height: 220px; border-top: 5px solid #FFD700; order: 2; }
+            .p2 { height: 180px; border-top: 5px solid #C0C0C0; order: 1; }
+            .p3 { height: 160px; border-top: 5px solid #CD7F32; order: 3; }
+            .driver-card { 
+                display: flex; align-items: center; justify-content: space-between; 
+                padding: 10px 20px; margin: 8px 0; border-radius: 8px; 
+                background: #15151e; border-left: 10px solid; color: white;
+            }
+            .race-control-item {
+                display: flex; align-items: center; justify-content: space-between;
+                padding: 8px; border-bottom: 1px solid #333; font-family: 'Orbitron', sans-serif;
+            }
+            </style>
+        """, unsafe_allow_html=True)
 
-        # --- SUBPESTAÑA 1: GENERAL ---
+        subtab_gen, subtab_gp = st.tabs(["🌎 CLASIFICACIÓN MUNDIAL", "🏁 RACE CONTROL (RESULTADOS)"])
+
+        # --- LÓGICA DE DATOS COMÚN ---
+        df_users_ranking = leer_datos("Usuarios")
+        if not df_users_ranking.empty:
+            participantes = df_users_ranking[df_users_ranking['Rol'] == 'user']['Usuario'].unique()
+            ranking_list = []
+            for u in participantes:
+                p_gps = sum([calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g]) for g in GPS])
+                p_mundial = calcular_puntos_mundial(df_temp[df_temp['Usuario']==u], df_r_mundial)
+                ranking_list.append({"Piloto": u, "TOTAL": p_gps + p_mundial})
+            
+            df_final = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
+            
+            def get_team_info(usuario):
+                row = df_users_ranking[df_users_ranking['Usuario'] == usuario]
+                team = row['Equipo'].values[0] if not row.empty else "McLaren"
+                return EQUIPOS_DATA.get(team, EQUIPOS_DATA["McLaren"])
+
+        # --- SUBPESTAÑA 1: MUNDIAL (PODIO + CARDS) ---
         with subtab_gen:
-            st.subheader("Clasificación Mundial de Pilotos")
-            df_users_ranking = leer_datos("Usuarios")
-            
-            if not df_users_ranking.empty:
-                participantes = df_users_ranking[df_users_ranking['Rol'] == 'user']['Usuario'].unique()
-                ranking_list = []
+            if not df_final.empty:
+                # 🏆 SECCIÓN PODIO
+                top_3 = df_final.head(3).to_dict('records')
+                cols = st.columns([1, 1.2, 1])
                 
-                for u in participantes:
-                    p_gps = sum([calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g]) for g in GPS])
-                    p_mundial = calcular_puntos_mundial(df_temp[df_temp['Usuario']==u], df_r_mundial)
-                    ranking_list.append({"Piloto": u, "GPs": p_gps, "Bonus": p_mundial, "TOTAL": p_gps + p_mundial})
-                
-                df_final = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
-                
-                def get_logo(usuario):
-                    row = df_users_ranking[df_users_ranking['Usuario'] == usuario]
-                    if not row.empty and 'Equipo' in row.columns:
-                        team = row['Equipo'].values[0]
-                        return EQUIPOS_DATA.get(team, {}).get('logo', "")
-                    return ""
+                for i, pos in enumerate([1, 0, 2]): # Orden: P2, P1, P3
+                    if i < len(top_3):
+                        d = top_3[pos]
+                        team = get_team_info(d['Piloto'])
+                        with cols[i]:
+                            css_class = ["p2", "p1", "p3"][i]
+                            st.markdown(f"""
+                                <div class="podium-card {css_class}">
+                                    <h2 style='margin:0;'>P{pos+1}</h2>
+                                    <img src="{team['logo']}" width="60">
+                                    <p style='font-family:Orbitron; margin:10px 0 0 0; font-size:1.2em;'>{d['Piloto']}</p>
+                                    <h3 style='color:#00ff00; margin:0;'>{int(d['TOTAL'])} PTS</h3>
+                                </div>
+                            """, unsafe_allow_html=True)
 
-                df_final["Escudería"] = df_final["Piloto"].apply(get_logo)
-                df_final.insert(0, "Pos", range(1, len(df_final) + 1))
+                st.divider()
 
-                st.dataframe(
-                    df_final[["Pos", "Escudería", "Piloto", "GPs", "Bonus", "TOTAL"]],
-                    column_config={
-                        "Escudería": st.column_config.ImageColumn("Team"),
-                        "TOTAL": st.column_config.NumberColumn("Puntos", format="%d pts 🏁"),
-                    },
-                    use_container_width=True,
-                    hide_index=True
-                )
+                # 💳 RESTO DE LA PARRILLA (P4+)
+                rest_parrilla = df_final.iloc[3:]
+                for idx, row in rest_parrilla.iterrows():
+                    team = get_team_info(row['Piloto'])
+                    pos = list(df_final['Piloto']).index(row['Piloto']) + 1
+                    st.markdown(f"""
+                        <div class="driver-card" style="border-left-color: {team['color']};">
+                            <div style="display:flex; align-items:center; gap:15px;">
+                                <span style="font-family:Orbitron; font-size:1.5em; width:40px;">{pos}</span>
+                                <img src="{team['logo']}" width="35">
+                                <span style="font-size:1.1em; font-weight:bold;">{row['Piloto']}</span>
+                            </div>
+                            <div style="text-align:right;">
+                                <span style="font-family:Orbitron; color:#00ff00; font-size:1.2em;">{int(row['TOTAL'])} PTS</span>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-        # --- SUBPESTAÑA 2: POR CARRERA ---
+        # --- SUBPESTAÑA 2: RACE CONTROL (GP ESPECÍFICO) ---
         with subtab_gp:
-            st.subheader("Análisis de Rendimiento por GP")
-            gp_ranking_sel = st.selectbox("Seleccionar Gran Premio para ver detalles", GPS, key="gp_rank_sel")
+            gp_sel_rank = st.selectbox("Analizar Gran Premio:", GPS, key="gp_analysis")
+            res_real = df_r[df_r['GP'] == gp_sel_rank]
             
-            # Obtenemos resultados reales de ese GP
-            results_gp_real = df_r[df_r['GP'] == gp_ranking_sel]
-            
-            if results_gp_real.empty:
-                st.info(f"Aún no se han publicado resultados reales para el {gp_ranking_sel}.")
+            if res_real.empty:
+                st.info("Esperando a que el Admin publique resultados...")
             else:
-                gp_ranking_data = []
+                detalles_gp = []
                 for u in participantes:
-                    # Usamos detalle=True para obtener el desglose
-                    det = calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==gp_ranking_sel)], results_gp_real, detalle=True)
-                    
-                    gp_ranking_data.append({
-                        "Piloto": u,
-                        "Qualy": det["Qualy"],
-                        "Sprint": det["Sprint"],
-                        "Carrera": det["Carrera"],
-                        "Extras": det["Extras"],
-                        "Total GP": sum(det.values())
-                    })
+                    d = calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==gp_sel_rank)], res_real, detalle=True)
+                    detalles_gp.append({"Piloto": u, **d, "Total": sum(d.values())})
                 
-                df_gp_rank = pd.DataFrame(gp_ranking_data).sort_values("Total GP", ascending=False)
-                df_gp_rank["Escudería"] = df_gp_rank["Piloto"].apply(get_logo)
-                df_gp_rank.insert(0, "Pos", range(1, len(df_gp_rank) + 1))
+                df_det = pd.DataFrame(detalles_gp).sort_values("Total", ascending=False)
                 
-                # Configuración de colores para el desglose
-                st.dataframe(
-                    df_gp_rank[["Pos", "Escudería", "Piloto", "Qualy", "Sprint", "Carrera", "Extras", "Total GP"]],
-                    column_config={
-                        "Escudería": st.column_config.ImageColumn("Team"),
-                        "Qualy": st.column_config.NumberColumn("⏱️ Q"),
-                        "Sprint": st.column_config.NumberColumn("⚡ S"),
-                        "Carrera": st.column_config.NumberColumn("🏁 C"),
-                        "Extras": st.column_config.NumberColumn("🎲 +"),
-                        "Total GP": st.column_config.NumberColumn("Total", format="%d pts")
-                    },
-                    use_container_width=True,
-                    hide_index=True
-                )
-                
-                st.caption("💡 **Abreviaturas:** Q (Qualy), S (Sprint), C (Carrera), + (Alonso/Sainz/Eventos)")
+                for i, r in df_det.iterrows():
+                    team = get_team_info(r['Piloto'])
+                    st.markdown(f"""
+                        <div class="race-control-item">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <img src="{team['logo']}" width="25">
+                                <span>{r['Piloto']}</span>
+                            </div>
+                            <div style="display:flex; gap:15px; font-size:0.8em; opacity:0.8;">
+                                <span>⏱️ Q: {r['Qualy']}</span>
+                                <span>⚡ S: {r['Sprint']}</span>
+                                <span>🏁 C: {r['Carrera']}</span>
+                                <span>🎲 +: {r['Extras']}</span>
+                            </div>
+                            <div style="color:#00ff00; font-weight:bold;">{int(r['Total'])} PTS</div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
     with tab3:
         st.header("🏆 Mundial de Temporada")
