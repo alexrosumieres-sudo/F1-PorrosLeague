@@ -197,23 +197,60 @@ else:
     if df_temp.empty: df_temp = pd.DataFrame(columns=['Usuario', 'Variable', 'Valor'])
     if df_cal.empty: df_cal = pd.DataFrame(columns=['GP', 'LimiteQualy', 'LimiteSprint', 'LimiteCarrera'])
 
-    # --- LÓGICA DE BLOQUEO ---
+    # --- LÓGICA DE BARRA LATERAL Y BLOQUEO CON COUNTDOWN ---
     st.sidebar.title(f"Piloto: {st.session_state.user}")
     gp_sel = st.sidebar.selectbox("Gran Premio", GPS)
+    
     es_sprint = gp_sel in SPRINT_GPS
     cal_row = df_cal[df_cal['GP'] == gp_sel]
     now = datetime.now()
+
+    # Inicializamos estados por defecto
     q_bloq, s_bloq, c_bloq = False, False, False
+    
     if not cal_row.empty:
+        # Extraemos las fechas límite del calendario
         q_lim = pd.to_datetime(cal_row.iloc[0]['LimiteQualy'])
         c_lim = pd.to_datetime(cal_row.iloc[0]['LimiteCarrera'])
-        q_bloq, c_bloq = now > q_lim, now > c_lim
-        st.sidebar.markdown(f"**⏱️ Qualy:** {'🔴 Cerrada' if q_bloq else '🟢 Abierta'}")
+        
+        # Función interna para el cálculo del tiempo restante
+        def obtener_countdown(fecha_limite):
+            diff = fecha_limite - now
+            if diff.total_seconds() <= 0:
+                return "🔴 Cerrada"
+            
+            dias = diff.days
+            horas, rem = divmod(diff.seconds, 3600)
+            minutos, _ = divmod(rem, 60)
+            
+            if dias > 0:
+                return f"🟢 Cierra en {dias}d {horas}h"
+            elif horas > 0:
+                return f"⏳ ¡Date prisa! Cierra en {horas}h {minutos}m"
+            else:
+                return f"🔥 ¡ÚLTIMOS MINUTOS! {minutos}m restantes"
+
+        # Aplicamos bloqueos reales para los formularios
+        q_bloq = now > q_lim
+        c_bloq = now > c_lim
+
+        # Mostramos los contadores en la Sidebar
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("⏱️ Clasificación")
+        st.sidebar.markdown(f"**{obtener_countdown(q_lim)}**")
+        
         if es_sprint:
             s_lim = pd.to_datetime(cal_row.iloc[0]['LimiteSprint'])
             s_bloq = now > s_lim
-            st.sidebar.markdown(f"**🏎️ Sprint:** {'🔴 Cerrada' if s_bloq else '🟢 Abierta'}")
-        st.sidebar.markdown(f"**🏁 Carrera:** {'🔴 Cerrada' if c_bloq else '🟢 Abierta'}")
+            st.sidebar.subheader("🏎️ Sprint")
+            st.sidebar.markdown(f"**{obtener_countdown(s_lim)}**")
+
+        st.sidebar.subheader("🏁 Carrera")
+        st.sidebar.markdown(f"**{obtener_countdown(c_lim)}**")
+        st.sidebar.markdown("---")
+        
+    else:
+        st.sidebar.warning("⚠️ Fechas límite no configuradas para este GP")
 
     if st.sidebar.button("Cerrar Sesión"):
         st.session_state.auth = False
