@@ -48,6 +48,8 @@ GPS = [
 FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 8, 5, 0)
 MUNDIAL_BLOQUEADO = datetime.now() > FECHA_LIMITE_TEMPORADA
 # 2. FUNCIONES DE CÁLCULO
+# 2. FUNCIONES DE CÁLCULO DEFINITIVAS
+
 def calcular_puntos_gp(u_preds, gp_results, detalle=False):
     pts = 0.0
     desglose = {"Qualy": 0.0, "Sprint": 0.0, "Carrera": 0.0, "Extras": 0.0}
@@ -67,14 +69,8 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
         
         puntos_esta_var = 0.0
         
-        # --- LÓGICA SPRINT (NUEVA: 1pt si es exacta, 0 si no) ---
-        if var.startswith('S'):
-            if val_p == val_r:
-                puntos_esta_var = 1.0
-            desglose["Sprint"] += puntos_esta_var
-
-        # --- LÓGICA QUALY Y CARRERA (Top 5: 2.0, 1.5 o 0.5) ---
-        elif var.startswith('Q') or var.startswith('C'):
+        # --- LÓGICA QUALY (Q) Y CARRERA (C) ---
+        if var.startswith('Q') or var.startswith('C'):
             lista_real = real_q if var.startswith('Q') else real_c
             try:
                 pos_pred = int(var[1:])
@@ -87,19 +83,30 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
             
             if var.startswith('Q'): desglose["Qualy"] += puntos_esta_var
             else: desglose["Carrera"] += puntos_esta_var
+
+        # --- LÓGICA SPRINT (S) ---
+        elif var.startswith('S'):
+            if val_p == val_r:
+                puntos_esta_var = 1.0
+            desglose["Sprint"] += puntos_esta_var
             
-        # --- LÓGICA ESPAÑOLES (1.0 o 0.5) ---
+        # --- LÓGICA ESPAÑOLES (Alonso/Sainz) ---
         elif var in ['Alonso', 'Sainz']:
             try:
-                if str(val_p) == str(val_r): puntos_esta_var = 1.0
-                elif val_p != "DNF" and val_r != "DNF" and abs(int(val_p) - int(val_r)) == 1:
-                    puntos_esta_var = 0.5
+                # Si es exacto (incluye DNF == DNF)
+                if str(val_p) == str(val_r): 
+                    puntos_esta_var = 2.0
+                # Si falla por 1 (solo si ambos son números)
+                elif val_p != "DNF" and val_r != "DNF":
+                    if abs(int(val_p) - int(val_r)) == 1:
+                        puntos_esta_var = 1.0
             except: pass
             desglose["Extras"] += puntos_esta_var
 
-        # --- LÓGICA CAOS (2.0 si acierta) ---
+        # --- LÓGICA CAOS (Safety/RedFlag) ---
         elif var in ['Safety', 'RedFlag']:
-            if str(val_p).lower() == str(val_r).lower(): puntos_esta_var = 2.0
+            if str(val_p).lower() == str(val_r).lower(): 
+                puntos_esta_var = 2.0
             desglose["Extras"] += puntos_esta_var
             
         pts += puntos_esta_var
@@ -111,28 +118,30 @@ def calcular_puntos_mundial(u_preds_temp, mundial_results):
     if u_preds_temp.empty or mundial_results.empty:
         return 0.0
     
+    # Listas reales para calcular distancias
+    real_p = mundial_results[mundial_results['Variable'].str.startswith('P')].sort_values('Variable')['Valor'].tolist()
+    real_e = mundial_results[mundial_results['Variable'].str.startswith('E')].sort_values('Variable')['Valor'].tolist()
+    
     for _, row in u_preds_temp.iterrows():
         var, val_p = row['Variable'], row['Valor']
         res_row = mundial_results[mundial_results['Variable'] == var]
         if res_row.empty: continue
         val_r = res_row.iloc[0]['Valor']
         
-        # Obtenemos la lista real completa (Pilotos o Equipos) para calcular distancias
-        tipo = "P" if var.startswith('P') else "E"
-        lista_real = mundial_results[mundial_results['Variable'].str.startswith(tipo)].sort_values('Variable')['Valor'].tolist()
-        
         try:
             pos_pred = int(var[1:])
             if val_p == val_r:
-                pts += 5.0 # Exacto
-            elif val_p in lista_real:
-                pos_real = lista_real.index(val_p) + 1
-                distancia = abs(pos_pred - pos_real)
-                
-                if distancia == 1:
-                    pts += 2.0 # Error de 1
-                elif distancia == 2 and tipo == "P":
-                    pts += 1.0 # Error de 2 (solo en pilotos)
+                pts += 5.0 # Exacto (Pilotos y Equipos)
+            else:
+                # Lógica de aproximación
+                if var.startswith('P') and val_p in real_p:
+                    pos_real = real_p.index(val_p) + 1
+                    distancia = abs(pos_pred - pos_real)
+                    if distancia == 1: pts += 2.0
+                    elif distancia == 2: pts += 1.0
+                elif var.startswith('E') and val_p in real_e:
+                    pos_real = real_e.index(val_p) + 1
+                    if abs(pos_pred - pos_real) == 1: pts += 2.0
         except: pass
     return pts
 
@@ -315,50 +324,25 @@ else:
         df_u_rank = leer_datos("Usuarios")
         if not df_u_rank.empty:
             participantes = df_u_rank[df_u_rank['Rol'] == 'user']['Usuario'].unique()
-            ranking_list, evolution_data = [], []
+            ranking_list = []
             
             for u in participantes:
-                # 1. Puntos de GPs
-                p_gps = 0.0
-                for g in GPS:
-                    pts_gp = calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g])
-                    p_gps += pts_gp
-                    evolution_data.append({"Usuario": u, "GP": g[:3], "Puntos": p_gps})
+                # 1. Suma de todos los GPs
+                p_gps = sum([calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g]) for g in GPS])
                 
-                # 2. Puntos del Mundial Final
-                pts_mundial = calcular_puntos_mundial(df_temp[df_temp['Usuario']==u], df_r_mundial)
+                # 2. Suma del Mundial Final
+                p_mundial = calcular_puntos_mundial(df_temp[df_temp['Usuario']==u], df_r_mundial)
                 
-                total_final = p_gps + pts_mundial
                 ranking_list.append({
                     "Piloto": u, 
                     "Puntos GPs": p_gps, 
-                    "Bonus Mundial": pts_mundial, 
-                    "Puntos TOTALES": total_final
+                    "Bonus Mundial": p_mundial, 
+                    "TOTAL": p_gps + p_mundial
                 })
             
-            # Gráfico de Evolución (Solo de los GPs)
-            st.subheader("📈 Evolución en Carreras")
-            st.line_chart(pd.DataFrame(evolution_data).pivot(index="GP", columns="Usuario", values="Puntos"))
-            
-            # Tabla Final
-            st.subheader("🏁 Tabla de Puntuación")
-            df_f = pd.DataFrame(ranking_list).sort_values("Puntos TOTALES", ascending=False)
+            df_f = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
             df_f.insert(0, "Pos", range(1, len(df_f) + 1))
             st.dataframe(df_f, use_container_width=True, hide_index=True)
-
-            # Desglose de Historial igual que antes...
-            st.divider()
-            st.subheader("🧐 Historial Detallado por GP")
-            col_u, col_g = st.columns(2)
-            u_v = col_u.selectbox("Piloto", participantes, key="hist_u")
-            g_v = col_g.selectbox("Gran Premio", GPS, key="hist_g")
-            det = calcular_puntos_gp(df_p[(df_p['Usuario']==u_v) & (df_p['GP']==g_v)], df_r[df_r['GP']==g_v], detalle=True)
-            c1, c2, c3, c4, c5 = st.columns(5)
-            c1.metric("Qualy", det["Qualy"])
-            c2.metric("Sprint", det["Sprint"])
-            c3.metric("Carrera", det["Carrera"])
-            c4.metric("Extras", det["Extras"])
-            c5.metric("Total GP", sum(det.values()))
 
     with tab3:
         st.header("🏆 Mundial de Temporada")
