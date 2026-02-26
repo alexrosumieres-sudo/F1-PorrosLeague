@@ -278,64 +278,34 @@ else:
                         st.success("✅ ¡Guardado!")
 
     with tab2:
-        # --- ESTILOS CSS PEDESTAL PRO ---
+        # --- ESTILOS CSS PEDESTAL + RACE CONTROL ---
         st.markdown("""
             <style>
-            /* Contenedor principal del podio */
-            .podium-container { 
-                display: flex; 
-                align-items: flex-end; 
-                justify-content: center; 
-                gap: 10px; 
-                padding: 40px 0 20px 0; 
-                margin-bottom: 20px;
-            }
-            
-            /* Tarjeta base */
+            .podium-container { display: flex; align-items: flex-end; justify-content: center; gap: 10px; padding: 40px 0 20px 0; }
             .podium-card { 
-                text-align: center; 
-                padding: 20px 10px; 
-                border-radius: 10px 10px 5px 5px; 
-                background: #1a1a24; 
-                width: 100%; 
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                position: relative;
+                text-align: center; padding: 20px 10px; border-radius: 10px 10px 5px 5px; 
+                background: #1a1a24; width: 100%; display: flex; flex-direction: column;
+                justify-content: space-between; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;
             }
-
-            /* Alturas diferenciadas: P1 el más alto sobresaliendo */
             .p1 { height: 320px; border-top: 8px solid #FFD700; z-index: 2; }
             .p2 { height: 260px; border-top: 8px solid #C0C0C0; opacity: 0.9; }
             .p3 { height: 230px; border-top: 8px solid #CD7F32; opacity: 0.8; }
-
-            /* Limpieza total de los títulos (Eliminar barra roja lateral de las fotos) */
+            
             .podium-card h2, .podium-card h3, .podium-card p, .podium-card div { 
-                border-left: none !important; 
-                padding-left: 0 !important; 
-                margin: 0 !important;
-                font-style: normal !important;
+                border-left: none !important; padding-left: 0 !important; margin: 0 !important; font-style: normal !important;
             }
-
             .rank-label { font-size: 2.2em; font-weight: 900; color: #fff; font-family: 'Orbitron'; }
             .driver-name { font-size: 1.3em; color: #ffffff; font-weight: 700; margin-top: 15px !important; }
-            
-            /* Puntos: subidos para que no toquen el borde */
-            .points-label { 
-                font-size: 1.5em; 
-                color: #00ff00; 
-                font-weight: 900; 
-                font-family: 'Orbitron';
-                padding-bottom: 15px !important; 
-            }
+            .points-label { font-size: 1.5em; color: #00ff00; font-weight: 900; font-family: 'Orbitron'; padding-bottom: 15px !important; }
 
-            /* Tarjetas inferiores (P4+) */
+            /* Estilo para las filas de clasificación y Race Control */
             .driver-card { 
                 display: flex; align-items: center; justify-content: space-between; 
                 padding: 12px 25px; margin: 10px 0; border-radius: 5px; 
                 background: #15151e; border-left: 10px solid; color: white;
             }
+            .telemetry-box { display: flex; gap: 15px; font-size: 0.85em; opacity: 0.8; margin-right: 20px; }
+            .telemetry-box b { color: #e10600; }
             </style>
         """, unsafe_allow_html=True)
 
@@ -345,6 +315,14 @@ else:
         df_users_ranking = leer_datos("Usuarios")
         if not df_users_ranking.empty:
             participantes = df_users_ranking[df_users_ranking['Rol'] == 'user']['Usuario'].unique()
+            
+            def get_team_info(usuario):
+                row = df_users_ranking[df_users_ranking['Usuario'] == usuario]
+                team = row['Equipo'].values[0] if not row.empty and 'Equipo' in row.columns else "McLaren"
+                return EQUIPOS_DATA.get(team, EQUIPOS_DATA["McLaren"])
+
+        # --- SUBPESTAÑA 1: MUNDIAL ---
+        with subtab_gen:
             ranking_list = []
             for u in participantes:
                 p_gps = sum([calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g]) for g in GPS])
@@ -352,36 +330,21 @@ else:
                 ranking_list.append({"Piloto": u, "TOTAL": p_gps + p_mundial})
             
             df_final = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
-            
-            def get_team_info(usuario):
-                row = df_users_ranking[df_users_ranking['Usuario'] == usuario]
-                team = row['Equipo'].values[0] if not row.empty and 'Equipo' in row.columns else "McLaren"
-                return EQUIPOS_DATA.get(team, EQUIPOS_DATA["McLaren"])
 
-        with subtab_gen:
             if not df_final.empty:
                 top_3 = df_final.head(3).to_dict('records')
-                n_jugadores = len(top_3)
-                
-                # Usamos el contenedor con el estilo pedestal
                 st.markdown('<div class="podium-container">', unsafe_allow_html=True)
                 cols = st.columns([1, 1.2, 1])
+                orden = [{"idx": 1, "css": "p2", "lbl": "P2"}, {"idx": 0, "css": "p1", "lbl": "P1"}, {"idx": 2, "css": "p3", "lbl": "P3"}]
                 
-                orden_podio = [
-                    {"rank_idx": 1, "css": "p2", "label": "P2"}, # Izquierda
-                    {"rank_idx": 0, "css": "p1", "label": "P1"}, # Centro
-                    {"rank_idx": 2, "css": "p3", "label": "P3"}  # Derecha
-                ]
-
-                for i, conf in enumerate(orden_podio):
-                    idx = conf["rank_idx"]
-                    if idx < n_jugadores:
-                        d = top_3[idx]
+                for i, c in enumerate(orden):
+                    if c["idx"] < len(top_3):
+                        d = top_3[c["idx"]]
                         team = get_team_info(d['Piloto'])
                         with cols[i]:
                             st.markdown(f"""
-                                <div class="podium-card {conf['css']}">
-                                    <div class="rank-label">{conf['label']}</div>
+                                <div class="podium-card {c['css']}">
+                                    <div class="rank-label">{c['lbl']}</div>
                                     <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center;">
                                         <img src="{team['logo']}" width="80">
                                     </div>
@@ -390,19 +353,15 @@ else:
                                 </div>
                             """, unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
-
                 st.divider()
 
-                # Resto de la parrilla
                 if len(df_final) > 3:
-                    rest_parrilla = df_final.iloc[3:]
-                    for idx, row in rest_parrilla.iterrows():
+                    for i, row in df_final.iloc[3:].iterrows():
                         team = get_team_info(row['Piloto'])
-                        pos = list(df_final['Piloto']).index(row['Piloto']) + 1
                         st.markdown(f"""
                             <div class="driver-card" style="border-left-color: {team['color']};">
                                 <div style="display:flex; align-items:center; gap:20px;">
-                                    <span style="font-family:Orbitron; font-size:1.6em; width:45px; font-weight:800;">{pos}</span>
+                                    <span style="font-family:Orbitron; font-size:1.6em; width:45px; font-weight:800;">{list(df_final['Piloto']).index(row['Piloto'])+1}</span>
                                     <img src="{team['logo']}" width="40">
                                     <span style="font-size:1.2em; font-weight:700;">{row['Piloto']}</span>
                                 </div>
@@ -411,6 +370,45 @@ else:
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)
+
+        # --- SUBPESTAÑA 2: RACE CONTROL (GP ESPECÍFICO) ---
+        with subtab_gp:
+            gp_sel_rank = st.selectbox("Analizar Gran Premio:", GPS, key="gp_rank_control")
+            res_real = df_r[df_r['GP'] == gp_sel_rank]
+            
+            if res_real.empty:
+                st.info("📢 Resultados no disponibles. Esperando a que el Admin publique los datos oficiales.")
+            else:
+                detalles_gp = []
+                for u in participantes:
+                    # Usamos detalle=True para el desglose
+                    d = calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==gp_sel_rank)], res_real, detalle=True)
+                    detalles_gp.append({"Piloto": u, **d, "Total": sum(d.values())})
+                
+                df_det = pd.DataFrame(detalles_gp).sort_values("Total", ascending=False)
+                
+                for i, r in df_det.iterrows():
+                    team = get_team_info(r['Piloto'])
+                    pos = list(df_det['Piloto']).index(r['Piloto']) + 1
+                    
+                    st.markdown(f"""
+                        <div class="driver-card" style="border-left-color: {team['color']}; background: #0e0e12; margin: 5px 0;">
+                            <div style="display:flex; align-items:center; gap:15px; flex-grow:1;">
+                                <span style="font-family:Orbitron; font-size:1.2em; width:30px; opacity:0.6;">{pos}</span>
+                                <img src="{team['logo']}" width="30">
+                                <span style="font-weight:700;">{r['Piloto']}</span>
+                            </div>
+                            <div class="telemetry-box">
+                                <span>Q:<b>{r['Qualy']}</b></span>
+                                <span>S:<b>{r['Sprint']}</b></span>
+                                <span>C:<b>{r['Carrera']}</b></span>
+                                <span>+:<b>{r['Extras']}</b></span>
+                            </div>
+                            <div style="color:#00ff00; font-weight:800; font-family:Orbitron; font-size:1.1em; width:90px; text-align:right;">
+                                {int(r['Total'])} PTS
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
     with tab3:
         st.header("🏆 Mundial de Temporada")
