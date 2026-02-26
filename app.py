@@ -43,6 +43,89 @@ GPS = [
     "24. GP de Abu Dabi"
 ]
 
+¡Esto va a quedar increíble! Vamos a transformar la app en el "Race Control" de vuestra liga.
+
+He preparado los tres cambios integrados. Para que el Punto 2 (Logos en el Ranking) funcione, he modificado ligeramente el registro para que cada uno elija su escudería.
+
+1. Preparación de Datos y Estilo (Copia esto al principio, tras los imports)
+Sustituye tus listas de pilotos y añade este bloque de configuración visual:
+
+Python
+# --- CONFIGURACIÓN VISUAL F1 ---
+EQUIPOS_DATA = {
+    "McLaren": {"emoji": "🟠", "color": "#FF8000", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/mclaren-logo.png"},
+    "Ferrari": {"emoji": "🔴", "color": "#E80020", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/ferrari-logo.png"},
+    "Mercedes": {"emoji": "⚪", "color": "#27F4D2", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/mercedes-logo.png"},
+    "Aston Martin": {"emoji": "🟢", "color": "#229971", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/aston-martin-logo.png"},
+    "Red Bull": {"emoji": "🔵", "color": "#3671C6", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/red-bull-racing-logo.png"},
+    "Williams": {"emoji": "🔵", "color": "#64C4FF", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/williams-logo.png"},
+    "Racing Bulls": {"emoji": "🔵", "color": "#6692FF", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/rb-logo.png"},
+    "Haas": {"emoji": "⚪", "color": "#B6BABD", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/haas-f1-team-logo.png"},
+    "Alpine": {"emoji": "🔵", "color": "#0093CC", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/alpine-logo.png"},
+    "Audi": {"emoji": "🔘", "color": "#F50A25", "logo": "https://www.audi.com/content/dam/gbp2/experience-audi/audi-sport/audi-f1/1920x1080-logo-audi-f1.jpg"},
+    "Cadillac": {"emoji": "🟡", "color": "#FFD700", "logo": "https://upload.wikimedia.org/wikipedia/commons/4/44/Cadillac_logo.svg"}
+}
+
+PILOTO_A_EQUIPO = {
+    "Norris": "McLaren", "Piastri": "McLaren", "Antonelli": "Mercedes", "Russell": "Mercedes",
+    "Verstappen": "Red Bull", "Hadjar": "Red Bull", "Leclerc": "Ferrari", "Hamilton": "Ferrari",
+    "Albon": "Williams", "Sainz Jr.": "Williams", "Lawson": "Racing Bulls", "Lindblad": "Racing Bulls",
+    "Alonso": "Aston Martin", "Stroll": "Aston Martin", "Ocon": "Haas", "Bearman": "Haas",
+    "Bortoleto": "Audi", "Hülkenberg": "Audi", "Gasly": "Alpine", "Colapinto": "Alpine",
+    "Perez": "Cadillac", "Bottas": "Cadillac"
+}
+
+# Crear lista con emojis para los selectores
+PILOTOS_CON_EMOJI = ["- Seleccionar -"] + [f"{EQUIPOS_DATA[PILOTO_A_EQUIPO[p]]['emoji']} {p}" for p in PILOTOS_2026]
+
+# --- INYECCIÓN DE CSS F1 ---
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+    
+    /* Títulos Estilo F1 */
+    h1, h2, h3 {
+        font-family: 'Orbitron', sans-serif !important;
+        text-transform: uppercase;
+        font-style: italic;
+        color: #e10600 !important;
+        border-left: 8px solid #e10600;
+        padding-left: 15px;
+        margin-top: 20px;
+    }
+
+    /* Pestañas */
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #15151e;
+        border-radius: 4px 20px 0px 0px;
+        color: white;
+        padding: 10px 20px;
+    }
+    .stTabs [aria-selected="true"] {
+        border-bottom: 4px solid #e10600 !important;
+        background-color: #1e1e27;
+    }
+
+    /* Métricas Digitales */
+    [data-testid="stMetricValue"] {
+        font-family: 'Orbitron', sans-serif;
+        color: #00ff00 !important;
+        background: black;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #e10600;
+    }
+
+    /* Cards de predicciones */
+    .stForm {
+        border: 1px solid #333 !important;
+        border-top: 4px solid #e10600 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
 # También actualizamos la fecha límite del Mundial (Australia es el 8 de marzo)
 # Ponemos el cierre el 8 de marzo a las 05:00 AM (antes de la carrera)
 FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 8, 5, 0)
@@ -147,6 +230,15 @@ def calcular_puntos_mundial(u_preds_temp, mundial_results):
         except: pass
     return pts
 
+def get_idx_emoji(pilot_name):
+    if pilot_name == "- Seleccionar -": return 0
+    # Buscamos en PILOTOS_CON_EMOJI el que termina con el nombre del piloto
+    for i, p_emoji in enumerate(PILOTOS_CON_EMOJI):
+        if p_emoji.endswith(pilot_name): return i
+    return 0
+
+# En el formulario:
+p1_q = st.selectbox("P1 Q", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val("Q1")))
 
 # 3. INTERFAZ Y LOGIN
 st.set_page_config(page_title="F1 Porra 2026", page_icon="🏎️", layout="wide")
@@ -179,19 +271,20 @@ if not st.session_state.auth:
 
     with tab_registro:
         with st.form("Registro"):
-            new_u = st.text_input("Elige nombre de usuario")
-            new_p = st.text_input("Elige contraseña", type="password")
+            new_u = st.text_input("Nombre de Piloto (Usuario)")
+            new_p = st.text_input("Contraseña", type="password")
+            # --- NUEVO: Selección de equipo ---
+            fav_team = st.selectbox("Tu Escudería Favorita", list(EQUIPOS_DATA.keys()))
             confirm_p = st.text_input("Confirma contraseña", type="password")
-            if st.form_submit_button("Crear cuenta"):
+            
+            if st.form_submit_button("🏎️ Unirse a la Parrilla"):
                 df_u = leer_datos("Usuarios")
-                if not new_u or not new_p: st.warning("Rellena todos los campos")
-                elif new_p != confirm_p: st.error("Las contraseñas no coinciden")
-                elif not df_u.empty and new_u in df_u['Usuario'].values: st.error("El usuario ya existe")
+                if not new_u or not new_p: st.warning("Rellena todo.")
+                elif new_p != confirm_p: st.error("Passwords no coinciden.")
                 else:
-                    nuevo_registro = pd.DataFrame([{"Usuario": new_u, "Password": new_p, "Rol": "user"}])
-                    if df_u.empty: df_u = pd.DataFrame(columns=["Usuario", "Password", "Rol"])
-                    conn.update(worksheet="Usuarios", data=pd.concat([df_u, nuevo_registro], ignore_index=True))
-                    st.success("✅ ¡Registro completado!")
+                    nuevo_reg = pd.DataFrame([{"Usuario": new_u, "Password": new_p, "Rol": "user", "Equipo": fav_team}])
+                    conn.update(worksheet="Usuarios", data=pd.concat([df_u, nuevo_reg], ignore_index=True))
+                    st.success("✅ ¡Fichaje completado!")
 else:
     # 4. CARGA DE DATOS
     df_p = leer_datos("Predicciones")
@@ -342,9 +435,28 @@ else:
                     "TOTAL": p_gps + p_mundial
                 })
             
-            df_f = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
-            df_f.insert(0, "Pos", range(1, len(df_f) + 1))
-            st.dataframe(df_f, use_container_width=True, hide_index=True)
+            df_final = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
+        
+        # Añadimos los logos de los equipos
+        def get_logo(usuario):
+            team = df_users[df_users['Usuario'] == usuario]['Equipo'].values
+            if len(team) > 0:
+                return EQUIPOS_DATA[team[0]]['logo']
+            return ""
+
+        df_final["Escudería"] = df_final["Piloto"].apply(get_logo)
+        df_final.insert(0, "Pos", range(1, len(df_final) + 1))
+
+        # Mostramos la tabla con imágenes reales
+        st.dataframe(
+            df_final[["Pos", "Escudería", "Piloto", "TOTAL"]],
+            column_config={
+                "Escudería": st.column_config.ImageColumn("Team", help="Escudería del usuario"),
+                "TOTAL": st.column_config.NumberColumn("Puntos", format="%d pts 🏎️")
+            },
+            use_container_width=True,
+            hide_index=True
+        )
 
     with tab3:
         st.header("🏆 Mundial de Temporada")
