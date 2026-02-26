@@ -457,7 +457,29 @@ else:
             st.error("⛔ Acceso restringido.")
 
     with tab5:
-        st.header("🔍 El Muro")
+        st.header("🔍 El Muro de la Verdad")
         df_muro = df_p[df_p['GP'] == gp_sel].copy()
         if not df_muro.empty:
-            st.dataframe(df_muro.pivot(index='Usuario', columns='Variable', values='Valor'), use_container_width=True)
+            # Creamos el pivote
+            df_piv = df_muro.pivot(index='Usuario', columns='Variable', values='Valor')
+            
+            # Definimos el orden lógico de las columnas
+            orden_columnas = (
+                [f"Q{i+1}" for i in range(5)] + 
+                ([f"S{i+1}" for i in range(3)] if es_sprint else []) + 
+                [f"C{i+1}" for i in range(5)] + 
+                ["Alonso", "Sainz", "Safety", "RedFlag"]
+            )
+            
+            # Solo mostramos las columnas que realmente existan en el DF
+            cols_a_mostrar = [c for c in orden_columnas if c in df_piv.columns]
+            
+            st.dataframe(
+                df_piv[cols_a_mostrar], 
+                use_container_width=True,
+                column_config={
+                    "Usuario": st.column_config.TextColumn("Piloto")
+                }
+            )
+        else:
+            st.info("Todavía no hay apuestas registradas para este Gran Premio.")
