@@ -5,102 +5,120 @@ from datetime import datetime
 
 # 1. CONFIGURACIONES BÁSICAS
 PILOTOS_2026 = sorted([
-    "Norris", "Piastri", "Antonelli", "Russell", "Verstappen", "Hadjar",
-    "Leclerc", "Hamilton", "Albon", "Sainz Jr.", "Lawson", "Lindblad",
-    "Alonso", "Stroll", "Ocon", "Bearman", "Bortoleto", "Hülkenberg",
-    "Gasly", "Colapinto", "Perez", "Bottas"
+    "Norris", "Piastri", "Antonelli", "Russell", "Verstappen", "Hadjar",
+    "Leclerc", "Hamilton", "Albon", "Sainz Jr.", "Lawson", "Lindblad",
+    "Alonso", "Stroll", "Ocon", "Bearman", "Bortoleto", "Hülkenberg",
+    "Gasly", "Colapinto", "Perez", "Bottas"
 ])
 
 EQUIPOS_2026 = sorted([
-    "McLaren", "Mercedes", "Red Bull", "Ferrari", "Williams", 
-    "Racing Bulls", "Aston Martin", "Haas", "Audi", "Alpine", "Cadillac"
+    "McLaren", "Mercedes", "Red Bull", "Ferrari", "Williams",
+    "Racing Bulls", "Aston Martin", "Haas", "Audi", "Alpine", "Cadillac"
 ])
 
 GPS = [
-    "01. GP de Australia", "02. GP de China", "03. GP de Japón", "04. GP de Baréin",
-    "05. GP de Arabia Saudita", "06. GP de Miami", "07. GP de Canadá", "08. GP de Mónaco",
-    "09. GP de Barcelona-Cataluña", "10. GP de Austria", "11. GP de Gran Bretaña", "12. GP de Bélgica",
-    "13. GP de Hungría", "14. GP de los Países Bajos", "15. GP de Italia", "16. GP de España (Madrid)",
-    "17. GP de Azerbaiyán", "18. GP de Singapur", "19. GP de Estados Unidos", "20. GP de Ciudad de México",
-    "21. GP de São Paulo", "22. GP de Las Vegas", "23. GP de Catar", "24. GP de Abu Dabi"
+    "01. GP de Australia", "02. GP de China", "03. GP de Japón", "04. GP de Baréin",
+    "05. GP de Arabia Saudita", "06. GP de Miami", "07. GP de Canadá", "08. GP de Mónaco",
+    "09. GP de Barcelona-Cataluña", "10. GP de Austria", "11. GP de Gran Bretaña", "12. GP de Bélgica",
+    "13. GP de Hungría", "14. GP de los Países Bajos", "15. GP de Italia", "16. GP de España (Madrid)",
+    "17. GP de Azerbaiyán", "18. GP de Singapur", "19. GP de Estados Unidos", "20. GP de Ciudad de México",
+    "21. GP de São Paulo", "22. GP de Las Vegas", "23. GP de Catar", "24. GP de Abu Dabi"
 ]
 
 # --- CONFIGURACIÓN VISUAL F1 ---
 EQUIPOS_DATA = {
-    "McLaren": {"emoji": "🟠", "color": "#FF8000", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/mclaren-logo.png"},
-    "Ferrari": {"emoji": "🔴", "color": "#E80020", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/ferrari-logo.png"},
-    "Mercedes": {"emoji": "⚪", "color": "#27F4D2", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/mercedes-logo.png"},
-    "Aston Martin": {"emoji": "🟢", "color": "#229971", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/aston-martin-logo.png"},
-    "Red Bull": {"emoji": "🔵", "color": "#3671C6", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/red-bull-racing-logo.png"},
-    "Williams": {"emoji": "🔵", "color": "#64C4FF", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/williams-logo.png"},
-    "Racing Bulls": {"emoji": "🔵", "color": "#6692FF", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/rb-logo.png"},
-    "Haas": {"emoji": "⚪", "color": "#B6BABD", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/haas-f1-team-logo.png"},
-    "Alpine": {"emoji": "🔵", "color": "#0093CC", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/alpine-logo.png"},
-    "Audi": {"emoji": "🔘", "color": "#F50A25", "logo": "data:image/jpeg;base64,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"},
-    "Cadillac": {"emoji": "🟡", "color": "#FFD700", "logo": "https://media.formula1.com/image/upload/c_lfill,w_3392/q_auto/v1740000000/fom-website/2025/Cadillac%20(GM)/Formula%201%20header%20templates%20-%202025-05-04T004129.094.webp"}
+    "McLaren": {"emoji": "🟠", "color": "#FF8000", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/mclaren-logo.png"},
+    "Ferrari": {"emoji": "🔴", "color": "#E80020", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/ferrari-logo.png"},
+    "Mercedes": {"emoji": "⚪", "color": "#27F4D2", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/mercedes-logo.png"},
+    "Aston Martin": {"emoji": "🟢", "color": "#229971", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/aston-martin-logo.png"},
+    "Red Bull": {"emoji": "🔵", "color": "#3671C6", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/red-bull-racing-logo.png"},
+    "Williams": {"emoji": "🔵", "color": "#64C4FF", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/williams-logo.png"},
+    "Racing Bulls": {"emoji": "🔵", "color": "#6692FF", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/rb-logo.png"},
+    "Haas": {"emoji": "⚪", "color": "#B6BABD", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/haas-f1-team-logo.png"},
+    "Alpine": {"emoji": "🔵", "color": "#0093CC", "logo": "https://www.formula1.com/content/dam/fom-website/teams/2024/alpine-logo.png"},
+    "Audi": {"emoji": "🔘", "color": "#F50A25", "logo": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/..."},
+    "Cadillac": {"emoji": "🟡", "color": "#FFD700", "logo": "https://media.formula1.com/image/upload/..."}
 }
 
 PILOTO_A_EQUIPO = {
-    "Norris": "McLaren", "Piastri": "McLaren", "Antonelli": "Mercedes", "Russell": "Mercedes",
-    "Verstappen": "Red Bull", "Hadjar": "Red Bull", "Leclerc": "Ferrari", "Hamilton": "Ferrari",
-    "Albon": "Williams", "Sainz Jr.": "Williams", "Lawson": "Racing Bulls", "Lindblad": "Racing Bulls",
-    "Alonso": "Aston Martin", "Stroll": "Aston Martin", "Ocon": "Haas", "Bearman": "Haas",
-    "Bortoleto": "Audi", "Hülkenberg": "Audi", "Gasly": "Alpine", "Colapinto": "Alpine",
-    "Perez": "Cadillac", "Bottas": "Cadillac"
+    "Norris": "McLaren", "Piastri": "McLaren", "Antonelli": "Mercedes", "Russell": "Mercedes",
+    "Verstappen": "Red Bull", "Hadjar": "Red Bull", "Leclerc": "Ferrari", "Hamilton": "Ferrari",
+    "Albon": "Williams", "Sainz Jr.": "Williams", "Lawson": "Racing Bulls", "Lindblad": "Racing Bulls",
+    "Alonso": "Aston Martin", "Stroll": "Aston Martin", "Ocon": "Haas", "Bearman": "Haas",
+    "Bortoleto": "Audi", "Hülkenberg": "Audi", "Gasly": "Alpine", "Colapinto": "Alpine",
+    "Perez": "Cadillac", "Bottas": "Cadillac"
 }
 
 PILOTOS_CON_EMOJI = ["- Seleccionar -"] + [f"{EQUIPOS_DATA[PILOTO_A_EQUIPO[p]]['emoji']} {p}" for p in PILOTOS_2026]
 
-# --- LISTAS DE OPCIONES GLOBALES (Para que el Admin no dé error) ---
 OPCIONES_PILOTOS = ["- Seleccionar -"] + PILOTOS_2026
 OPCIONES_EQUIPOS = ["- Seleccionar -"] + EQUIPOS_2026
 OPCIONES_BINARIAS = ["- Seleccionar -", "SI", "NO"]
 POSICIONES_CARRERA = ["- Seleccionar -", "DNF"] + [str(i) for i in range(1, 23)]
 
-# Fecha límite Mundial
 FECHA_LIMITE_TEMPORADA = datetime(2026, 3, 8, 5, 0)
 MUNDIAL_BLOQUEADO = datetime.now() > FECHA_LIMITE_TEMPORADA
 
 # 2. FUNCIONES DE CÁLCULO
 def calcular_puntos_gp(u_preds, gp_results, detalle=False):
-    pts = 0.0
-    desglose = {"Qualy": 0.0, "Sprint": 0.0, "Carrera": 0.0, "Extras": 0.0}
-    if u_preds.empty or gp_results.empty: return desglose if detalle else 0.0
-    real_q = gp_results[gp_results['Variable'].str.contains('Q')].sort_values('Variable')['Valor'].tolist()
-    real_s = gp_results[gp_results['Variable'].str.contains('S')].sort_values('Variable')['Valor'].tolist()
-    real_c = gp_results[gp_results['Variable'].str.contains('C')].sort_values('Variable')['Valor'].tolist()
+    pts = 0.0
+    desglose = {"Qualy": 0.0, "Sprint": 0.0, "Carrera": 0.0, "Extras": 0.0}
+    if u_preds.empty or gp_results.empty:
+        return desglose if detalle else 0.0
 
-    for _, row in u_preds.iterrows():
-        var, val_p = row['Variable'], row['Valor']
-        res_row = gp_results[gp_results['Variable'] == var]
-        if res_row.empty: continue
-        val_r = res_row.iloc[0]['Valor']
-        puntos_esta_var = 0.0
-        if var.startswith('Q') or var.startswith('C'):
-            lista_real = real_q if var.startswith('Q') else real_c
-            try:
-                pos_pred = int(var[1:])
-                if val_p == val_r: puntos_esta_var = 2.0
-                elif val_p in lista_real:
-                    pos_real = lista_real.index(val_p) + 1
-                    puntos_esta_var = 1.5 if abs(pos_pred - pos_real) == 1 else 0.5
-            except: pass
-            if var.startswith('Q'): desglose["Qualy"] += puntos_esta_var
-            else: desglose["Carrera"] += puntos_esta_var
-        elif var.startswith('S'):
-            if val_p == val_r: puntos_esta_var = 1.0
-            desglose["Sprint"] += puntos_esta_var
-        elif var in ['Alonso', 'Sainz']:
-            try:
-                if str(val_p) == str(val_r): puntos_esta_var = 2.0
-                elif val_p != "DNF" and val_r != "DNF" and abs(int(val_p) - int(val_r)) == 1: puntos_esta_var = 1.0
-            except: pass
-            desglose["Extras"] += puntos_esta_var
-        elif var in ['Safety', 'RedFlag']:
-            if str(val_p).lower() == str(val_r).lower(): puntos_esta_var = 2.0
-            desglose["Extras"] += puntos_esta_var
-        pts += puntos_esta_var
-    return desglose if detalle else pts
+    real_q = gp_results[gp_results['Variable'].str.contains('Q')].sort_values('Variable')['Valor'].tolist()
+    real_s = gp_results[gp_results['Variable'].str.contains('S')].sort_values('Variable')['Valor'].tolist()
+    real_c = gp_results[gp_results['Variable'].str.contains('C')].sort_values('Variable')['Valor'].tolist()
+
+    for _, row in u_preds.iterrows():
+        var, val_p = row['Variable'], row['Valor']
+        res_row = gp_results[gp_results['Variable'] == var]
+        if res_row.empty:
+            continue
+
+        val_r = res_row.iloc[0]['Valor']
+        puntos_esta_var = 0.0
+
+        if var.startswith('Q') or var.startswith('C'):
+            lista_real = real_q if var.startswith('Q') else real_c
+            try:
+                pos_pred = int(var[1:])
+                if val_p == val_r:
+                    puntos_esta_var = 2.0
+                elif val_p in lista_real:
+                    pos_real = lista_real.index(val_p) + 1
+                    puntos_esta_var = 1.5 if abs(pos_pred - pos_real) == 1 else 0.5
+            except:
+                pass
+
+            if var.startswith('Q'):
+                desglose["Qualy"] += puntos_esta_var
+            else:
+                desglose["Carrera"] += puntos_esta_var
+
+        elif var.startswith('S'):
+            if val_p == val_r:
+                puntos_esta_var = 1.0
+            desglose["Sprint"] += puntos_esta_var
+
+        elif var in ['Alonso', 'Sainz']:
+            try:
+                if str(val_p) == str(val_r):
+                    puntos_esta_var = 2.0
+                elif val_p != "DNF" and val_r != "DNF" and abs(int(val_p) - int(val_r)) == 1:
+                    puntos_esta_var = 1.0
+            except:
+                pass
+            desglose["Extras"] += puntos_esta_var
+
+        elif var in ['Safety', 'RedFlag']:
+            if str(val_p).lower() == str(val_r).lower():
+                puntos_esta_var = 2.0
+            desglose["Extras"] += puntos_esta_var
+
+        pts += puntos_esta_var
+
+    return desglose if detalle else pts
 
 def calcular_puntos_mundial(u_preds_temp, mundial_results):
     pts = 0.0
