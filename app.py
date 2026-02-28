@@ -475,60 +475,43 @@ else:
                         </div>
                     """, unsafe_allow_html=True)
 
-   with tab3:
-       st.header("🏆 Mundial de Temporada")
+    with tab3:
+        st.header("🏆 Mundial de Temporada")
         if st.session_state.rol == 'admin':
-            st.warning("⚠️ Los administradores no participan en el mundial.")
+            st.warning("⚠️ Los administradores no participan.")
         elif MUNDIAL_BLOQUEADO:
-            st.info("🔒 Mercado cerrado. Esta es tu apuesta guardada:")
+            st.info("🔒 Mercado cerrado.")
             df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
             st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
         else:
-            # Inicializar picks en el estado de la sesión si no existen
             if "mundial_state" not in st.session_state:
                 df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
                 st.session_state.mundial_state = {row['Variable']: row['Valor'] for _, row in df_u_temp.iterrows()}
 
             m_state = st.session_state.mundial_state
-            
             c1, c2 = st.columns(2)
-            
             with c1:
                 st.subheader("👤 Top Pilotos")
-                # Sacamos la lista de lo que ya hemos elegido para filtrar
-                seleccionados_p = [m_state.get(f"P{i+1}", "- Seleccionar -") for i in range(22)]
-                
+                sel_p = [m_state.get(f"P{i+1}", "- Seleccionar -") for i in range(22)]
                 for i in range(22):
                     var = f"P{i+1}"
-                    val_actual = m_state.get(var, "- Seleccionar -")
-                    # Filtramos: Disponibles = (Toda la lista - Elegidos por otros)
-                    opc_p = filtrar_opciones(val_actual, seleccionados_p, OPCIONES_PILOTOS)
-                    
-                    res = st.selectbox(f"P{i+1}", opc_p, index=opc_p.index(val_actual), key=f"m_p_sel_{i}")
-                    m_state[var] = res
-
+                    opc = filtrar_opciones(m_state.get(var, "- Seleccionar -"), sel_p, OPCIONES_PILOTOS)
+                    m_state[var] = st.selectbox(f"P{i+1}", opc, index=opc.index(m_state.get(var, "- Seleccionar -")), key=f"m_p_sel_{i}")
             with c2:
                 st.subheader("🏎️ Top Equipos")
-                # Sacamos la lista de equipos ya elegidos
-                seleccionados_e = [m_state.get(f"E{i+1}", "- Seleccionar -") for i in range(11)]
-                
+                sel_e = [m_state.get(f"E{i+1}", "- Seleccionar -") for i in range(11)]
                 for i in range(11):
                     var = f"E{i+1}"
-                    val_actual = m_state.get(var, "- Seleccionar -")
-                    # Aplicamos la misma lógica de filtrado para constructores
-                    opc_e = filtrar_opciones(val_actual, seleccionados_e, OPCIONES_EQUIPOS)
-                    
-                    res = st.selectbox(f"E{i+1}", opc_e, index=opc_e.index(val_actual), key=f"m_e_sel_{i}")
-                    m_state[var] = res
+                    opc = filtrar_opciones(m_state.get(var, "- Seleccionar -"), sel_e, OPCIONES_EQUIPOS)
+                    m_state[var] = st.selectbox(f"E{i+1}", opc, index=opc.index(m_state.get(var, "- Seleccionar -")), key=f"m_e_sel_{i}")
 
             if st.button("💾 GUARDAR MUNDIAL COMPLETO", use_container_width=True, type="primary"):
-                if "- Seleccionar -" in m_state.values() or len(m_state) < 33:
-                    st.error("⚠️ Debes rellenar las 22 posiciones de pilotos y 11 de equipos.")
+                if "- Seleccionar -" in m_state.values(): st.error("⚠️ Incompleto.")
                 else:
                     m_data = [{"Usuario": st.session_state.user, "Variable": k, "Valor": v} for k, v in m_state.items()]
                     df_temp = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(m_data)])
                     conn.update(worksheet="Temporada", data=df_temp)
-                    st.success("✅ ¡Mundial guardado con éxito!")
+                    st.success("✅ Mundial guardado.")
 
 
     with tab4:
