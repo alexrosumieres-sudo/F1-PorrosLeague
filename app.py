@@ -17,7 +17,7 @@ EQUIPOS_2026 = sorted([
 ])
 
 GPS = [
-    "01. GP de Australia", "02. GP de China", "03. GP de Japón", "04. GP de Baréin",ç
+    "01. GP de Australia", "02. GP de China", "03. GP de Japón", "04. GP de Baréin",
     "05. GP de Arabia Saudita", "06. GP de Miami", "07. GP de Canadá", "08. GP de Mónaco",
     "09. GP de Barcelona-Cataluña", "10. GP de Austria", "11. GP de Gran Bretaña", "12. GP de Bélgica",
     "13. GP de Hungría", "14. GP de los Países Bajos", "15. GP de Italia", "16. GP de España (Madrid)",
