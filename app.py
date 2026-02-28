@@ -12,8 +12,8 @@ PILOTOS_2026 = sorted([
 ])
 
 EQUIPOS_2026 = sorted([
-    "McLaren", "Mercedes", "Red Bull", "Ferrari", "Williams", 
-    "Racing Bulls", "Aston Martin", "Haas", "Audi", "Alpine", "Cadillac"
+    "McLaren", "Mercedes", "Red Bull", "Ferrari", "Williams", ç
+    "Racing Bulls", "Aston Martin", "Haas", "Audi", "Alpine", "Cadillac"
 ])
 
 GPS = [
