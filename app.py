@@ -146,10 +146,12 @@ def calcular_puntos_mundial(u_preds_temp, mundial_results):
     return pts
 
 def get_idx_emoji(pilot_name):
-    if pilot_name == "- Seleccionar -": return 0
-    for i, p_emoji in enumerate(PILOTOS_CON_EMOJI):
-        if p_emoji.endswith(pilot_name): return i
-    return 0
+    if pilot_name == "- Seleccionar -":
+        return 0
+    for i, p_emoji in enumerate(PILOTOS_CON_EMOJI):
+        if p_emoji.endswith(pilot_name):
+            return i
+    return 0
 
 # 3. INTERFAZ Y LOGIN
 st.set_page_config(page_title="F1 Porra 2026", page_icon="🏎️", layout="wide")
