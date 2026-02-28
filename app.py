@@ -75,10 +75,8 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
         res_row = gp_results[gp_results['Variable'] == var]
         if res_row.empty:
             continue
-
         val_r = res_row.iloc[0]['Valor']
         puntos_esta_var = 0.0
-
         if var.startswith('Q') or var.startswith('C'):
             lista_real = real_q if var.startswith('Q') else real_c
             try:
@@ -90,17 +88,14 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
                     puntos_esta_var = 1.5 if abs(pos_pred - pos_real) == 1 else 0.5
             except:
                 pass
-
             if var.startswith('Q'):
                 desglose["Qualy"] += puntos_esta_var
             else:
                 desglose["Carrera"] += puntos_esta_var
-
         elif var.startswith('S'):
             if val_p == val_r:
                 puntos_esta_var = 1.0
             desglose["Sprint"] += puntos_esta_var
-
         elif var in ['Alonso', 'Sainz']:
             try:
                 if str(val_p) == str(val_r):
@@ -110,32 +105,25 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
             except:
                 pass
             desglose["Extras"] += puntos_esta_var
-
         elif var in ['Safety', 'RedFlag']:
             if str(val_p).lower() == str(val_r).lower():
                 puntos_esta_var = 2.0
             desglose["Extras"] += puntos_esta_var
-
         pts += puntos_esta_var
-
     return desglose if detalle else pts
 
 def calcular_puntos_mundial(u_preds_temp, mundial_results):
     pts = 0.0
     if u_preds_temp.empty or mundial_results.empty:
         return 0.0
-
     real_p = mundial_results[mundial_results['Variable'].str.startswith('P')].sort_values('Variable')['Valor'].tolist()
     real_e = mundial_results[mundial_results['Variable'].str.startswith('E')].sort_values('Variable')['Valor'].tolist()
-
     for _, row in u_preds_temp.iterrows():
         var, val_p = row['Variable'], row['Valor']
         res_row = mundial_results[mundial_results['Variable'] == var]
         if res_row.empty:
             continue
-
         val_r = res_row.iloc[0]['Valor']
-
         try:
             pos_pred = int(var[1:])
             if val_p == val_r:
