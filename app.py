@@ -12,7 +12,7 @@ PILOTOS_2026 = sorted([
 ])
 
 EQUIPOS_2026 = sorted([
-    "McLaren", "Mercedes", "Red Bull", "Ferrari", "Williams", ç
+    "McLaren", "Mercedes", "Red Bull", "Ferrari", "Williams",
     "Racing Bulls", "Aston Martin", "Haas", "Audi", "Alpine", "Cadillac"
 ])
 
