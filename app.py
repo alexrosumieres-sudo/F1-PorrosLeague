@@ -5,7 +5,7 @@ from datetime import datetime
 
 # 1. CONFIGURACIONES BÁSICAS
 PILOTOS_2026 = sorted([
-    "Norris", "Piastri", "Antonelli", "Russell", "Verstappen", "Hadjar",
+    "Norris", "Piastri", "Antonelli", "Russell", "Verstappen", "Hadjar",
     "Leclerc", "Hamilton", "Albon", "Sainz Jr.", "Lawson", "Lindblad",
     "Alonso", "Stroll", "Ocon", "Bearman", "Bortoleto", "Hülkenberg",
     "Gasly", "Colapinto", "Perez", "Bottas"
