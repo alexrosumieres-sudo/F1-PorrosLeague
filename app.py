@@ -476,7 +476,7 @@ else:
                     """, unsafe_allow_html=True)
 
    with tab3:
-        st.header("🏆 Mundial de Temporada")
+       st.header("🏆 Mundial de Temporada")
         if st.session_state.rol == 'admin':
             st.warning("⚠️ Los administradores no participan en el mundial.")
         elif MUNDIAL_BLOQUEADO:
