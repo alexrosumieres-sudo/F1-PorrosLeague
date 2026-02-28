@@ -121,29 +121,41 @@ def calcular_puntos_gp(u_preds, gp_results, detalle=False):
     return desglose if detalle else pts
 
 def calcular_puntos_mundial(u_preds_temp, mundial_results):
-    pts = 0.0
-    if u_preds_temp.empty or mundial_results.empty: return 0.0
-    real_p = mundial_results[mundial_results['Variable'].str.startswith('P')].sort_values('Variable')['Valor'].tolist()
-    real_e = mundial_results[mundial_results['Variable'].str.startswith('E')].sort_values('Variable')['Valor'].tolist()
-    for _, row in u_preds_temp.iterrows():
-        var, val_p = row['Variable'], row['Valor']
-        res_row = mundial_results[mundial_results['Variable'] == var]
-        if res_row.empty: continue
-        val_r = res_row.iloc[0]['Valor']
-        try:
-            pos_pred = int(var[1:])
-            if val_p == val_r: pts += 5.0
-            else:
-                if var.startswith('P') and val_p in real_p:
-                    pos_real = real_p.index(val_p) + 1
-                    distancia = abs(pos_pred - pos_real)
-                    if distancia == 1: pts += 2.0
-                    elif distancia == 2: pts += 1.0
-                elif var.startswith('E') and val_p in real_e:
-                    pos_real = real_e.index(val_p) + 1
-                    if abs(pos_pred - pos_real) == 1: pts += 2.0
-        except: pass
-    return pts
+    pts = 0.0
+    if u_preds_temp.empty or mundial_results.empty:
+        return 0.0
+
+    real_p = mundial_results[mundial_results['Variable'].str.startswith('P')].sort_values('Variable')['Valor'].tolist()
+    real_e = mundial_results[mundial_results['Variable'].str.startswith('E')].sort_values('Variable')['Valor'].tolist()
+
+    for _, row in u_preds_temp.iterrows():
+        var, val_p = row['Variable'], row['Valor']
+        res_row = mundial_results[mundial_results['Variable'] == var]
+        if res_row.empty:
+            continue
+
+        val_r = res_row.iloc[0]['Valor']
+
+        try:
+            pos_pred = int(var[1:])
+            if val_p == val_r:
+                pts += 5.0
+            else:
+                if var.startswith('P') and val_p in real_p:
+                    pos_real = real_p.index(val_p) + 1
+                    distancia = abs(pos_pred - pos_real)
+                    if distancia == 1:
+                        pts += 2.0
+                    elif distancia == 2:
+                        pts += 1.0
+                elif var.startswith('E') and val_p in real_e:
+                    pos_real = real_e.index(val_p) + 1
+                    if abs(pos_pred - pos_real) == 1:
+                        pts += 2.0
+        except:
+            pass
+
+    return pts
 
 def get_idx_emoji(pilot_name):
     if pilot_name == "- Seleccionar -": return 0
