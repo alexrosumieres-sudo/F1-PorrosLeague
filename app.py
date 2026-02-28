@@ -197,12 +197,18 @@ if not st.session_state.auth:
                     st.success("✅ ¡Fichaje completado!")
 
 else:
-    # 4. CARGA DE DATOS
+    # --- 1. CARGA DE DATOS (YA LO TIENES) ---
     df_p = leer_datos("Predicciones")
     df_r = leer_datos("Resultados")
     df_temp = leer_datos("Temporada")
     df_cal = leer_datos("Calendario")
     df_r_mundial = leer_datos("ResultadosMundial")
+    
+    # --- 2. CARGA GLOBAL DE PARTICIPANTES (AÑADE ESTO AQUÍ) ---
+    df_users_ranking = leer_datos("Usuarios")
+    participantes = []
+    if not df_users_ranking.empty:
+        participantes = df_users_ranking[df_users_ranking['Rol'] == 'user']['Usuario'].unique()
     SPRINT_GPS = ["02. GP de China", "06. GP de Miami", "07. GP de Canadá", "11. GP de Gran Bretaña", "14. GP de los Países Bajos", "18. GP de Singapur"]
 
     if df_p.empty: df_p = pd.DataFrame(columns=['Usuario', 'GP', 'Variable', 'Valor'])
@@ -257,7 +263,7 @@ else:
         st.session_state.auth = False
         st.rerun()
 
-    # --- DEFINICIÓN DE PESTAÑAS ---
+    # Ahora sí, definimos las pestañas
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin", "🔍 El Muro"])
 
     with tab1:
@@ -469,47 +475,60 @@ else:
                         </div>
                     """, unsafe_allow_html=True)
 
-    with tab3:
+   with tab3:
         st.header("🏆 Mundial de Temporada")
         if st.session_state.rol == 'admin':
-            st.warning("⚠️ Los administradores no participan.")
+            st.warning("⚠️ Los administradores no participan en el mundial.")
         elif MUNDIAL_BLOQUEADO:
-            st.info("🔒 Mercado cerrado.")
+            st.info("🔒 Mercado cerrado. Esta es tu apuesta guardada:")
             df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
             st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
         else:
-            if "mundial_picks" not in st.session_state:
+            # Inicializar picks en el estado de la sesión si no existen
+            if "mundial_state" not in st.session_state:
                 df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
-                st.session_state.mundial_picks = {row['Variable']: row['Valor'] for _, row in df_u_temp.iterrows()}
+                st.session_state.mundial_state = {row['Variable']: row['Valor'] for _, row in df_u_temp.iterrows()}
 
-            picks = st.session_state.mundial_picks
+            m_state = st.session_state.mundial_state
             
             c1, c2 = st.columns(2)
+            
             with c1:
-                st.subheader("👤 Ranking Pilotos")
-                actuales_p = [picks.get(f"P{i+1}", "- Seleccionar -") for i in range(22)]
+                st.subheader("👤 Top Pilotos")
+                # Sacamos la lista de lo que ya hemos elegido para filtrar
+                seleccionados_p = [m_state.get(f"P{i+1}", "- Seleccionar -") for i in range(22)]
+                
                 for i in range(22):
                     var = f"P{i+1}"
-                    # Filtrar opciones (solo nombres limpios aquí)
-                    opc = filtrar_opciones(picks.get(var, "- Seleccionar -"), actuales_p, OPCIONES_PILOTOS)
-                    picks[var] = st.selectbox(f"P{i+1}", opc, index=opc.index(picks.get(var, "- Seleccionar -")), key=f"m_p_live_{i}")
+                    val_actual = m_state.get(var, "- Seleccionar -")
+                    # Filtramos: Disponibles = (Toda la lista - Elegidos por otros)
+                    opc_p = filtrar_opciones(val_actual, seleccionados_p, OPCIONES_PILOTOS)
+                    
+                    res = st.selectbox(f"P{i+1}", opc_p, index=opc_p.index(val_actual), key=f"m_p_sel_{i}")
+                    m_state[var] = res
 
             with c2:
-                st.subheader("🏎️ Ranking Equipos")
-                actuales_e = [picks.get(f"E{i+1}", "- Seleccionar -") for i in range(11)]
+                st.subheader("🏎️ Top Equipos")
+                # Sacamos la lista de equipos ya elegidos
+                seleccionados_e = [m_state.get(f"E{i+1}", "- Seleccionar -") for i in range(11)]
+                
                 for i in range(11):
                     var = f"E{i+1}"
-                    opc = filtrar_opciones(picks.get(var, "- Seleccionar -"), actuales_e, OPCIONES_EQUIPOS)
-                    picks[var] = st.selectbox(f"E{i+1}", opc, index=opc.index(picks.get(var, "- Seleccionar -")), key=f"m_e_live_{i}")
+                    val_actual = m_state.get(var, "- Seleccionar -")
+                    # Aplicamos la misma lógica de filtrado para constructores
+                    opc_e = filtrar_opciones(val_actual, seleccionados_e, OPCIONES_EQUIPOS)
+                    
+                    res = st.selectbox(f"E{i+1}", opc_e, index=opc_e.index(val_actual), key=f"m_e_sel_{i}")
+                    m_state[var] = res
 
-            if st.button("💾 GUARDAR MUNDIAL FINAL", use_container_width=True):
-                if "- Seleccionar -" in picks.values():
-                    st.error("⚠️ Completa toda la parrilla.")
+            if st.button("💾 GUARDAR MUNDIAL COMPLETO", use_container_width=True, type="primary"):
+                if "- Seleccionar -" in m_state.values() or len(m_state) < 33:
+                    st.error("⚠️ Debes rellenar las 22 posiciones de pilotos y 11 de equipos.")
                 else:
-                    m_data = [{"Usuario": st.session_state.user, "Variable": k, "Valor": v} for k, v in picks.items()]
+                    m_data = [{"Usuario": st.session_state.user, "Variable": k, "Valor": v} for k, v in m_state.items()]
                     df_temp = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(m_data)])
                     conn.update(worksheet="Temporada", data=df_temp)
-                    st.success("✅ ¡Mundial registrado!")
+                    st.success("✅ ¡Mundial guardado con éxito!")
 
 
     with tab4:
