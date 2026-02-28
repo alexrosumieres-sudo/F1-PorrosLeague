@@ -158,473 +158,473 @@ st.set_page_config(page_title="F1 Porra 2026", page_icon="🏎️", layout="wide
 
 # --- INYECCIÓN DE CSS F1 ---
 st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-    h1, h2, h3 { font-family: 'Orbitron', sans-serif !important; text-transform: uppercase; font-style: italic; color: #e10600 !important; border-left: 8px solid #e10600; padding-left: 15px; margin-top: 20px; }
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
-    .stTabs [data-baseweb="tab"] { background-color: #15151e; border-radius: 4px 20px 0px 0px; color: white; padding: 10px 20px; }
-    .stTabs [aria-selected="true"] { border-bottom: 4px solid #e10600 !important; background-color: #1e1e27; }
-    [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff00 !important; background: black; padding: 10px; border-radius: 5px; border: 1px solid #e10600; }
-    .stForm { border: 1px solid #333 !important; border-top: 4px solid #e10600 !important; }
-    </style>
-    """, unsafe_allow_html=True)
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+    h1, h2, h3 { font-family: 'Orbitron', sans-serif !important; text-transform: uppercase; font-style: italic; color: #e10600 !important; border-left: 8px solid #e10600; padding-left: 15px; margin-top: 20px; }
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
+    .stTabs [data-baseweb="tab"] { background-color: #15151e; border-radius: 4px 20px 0px 0px; color: white; padding: 10px 20px; }
+    .stTabs [aria-selected="true"] { border-bottom: 4px solid #e10600 !important; background-color: #1e1e27; }
+    [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff00 !important; background: black; padding: 10px; border-radius: 5px; border: 1px solid #e10600; }
+    .stForm { border: 1px solid #333 !important; border-top: 4px solid #e10600 !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def leer_datos(pestana):
-    try: return conn.read(worksheet=pestana, ttl=0)
-    except: return pd.DataFrame()
+    try: return conn.read(worksheet=pestana, ttl=0)
+    except: return pd.DataFrame()
 
 if 'auth' not in st.session_state: st.session_state.auth = False
 
 if not st.session_state.auth:
-    st.title("🏎️ F1 Pro Predictor")
-    tab_login, tab_registro = st.tabs(["🔐 Entrar", "📝 Registrarse"])
-    with tab_login:
-        with st.form("Login"):
-            u = st.text_input("Usuario")
-            p = st.text_input("Contraseña", type="password")
-            if st.form_submit_button("Entrar"):
-                df_u = leer_datos("Usuarios")
-                if not df_u.empty and u in df_u['Usuario'].values:
-                    user_row = df_u[df_u['Usuario']==u]
-                    if p == str(user_row['Password'].values[0]):
-                        st.session_state.auth, st.session_state.user = True, u
-                        st.session_state.rol = user_row['Rol'].values[0]
-                        st.rerun()
-                st.error("Usuario o contraseña incorrectos")
-    with tab_registro:
-        with st.form("Registro"):
-            new_u = st.text_input("Nombre de Piloto (Usuario)")
-            new_p = st.text_input("Contraseña", type="password")
-            fav_team = st.selectbox("Tu Escudería Favorita", list(EQUIPOS_DATA.keys()))
-            confirm_p = st.text_input("Confirma contraseña", type="password")
-            if st.form_submit_button("🏎️ Unirse a la Parrilla"):
-                df_u = leer_datos("Usuarios")
-                if not new_u or not new_p: st.warning("Rellena todo.")
-                elif new_p != confirm_p: st.error("Passwords no coinciden.")
-                elif not df_u.empty and new_u in df_u['Usuario'].values: st.error("El usuario ya existe")
-                else:
-                    nuevo_reg = pd.DataFrame([{"Usuario": new_u, "Password": new_p, "Rol": "user", "Equipo": fav_team}])
-                    conn.update(worksheet="Usuarios", data=pd.concat([df_u, nuevo_reg], ignore_index=True))
-                    st.success("✅ ¡Fichaje completado!")
+    st.title("🏎️ F1 Pro Predictor")
+    tab_login, tab_registro = st.tabs(["🔐 Entrar", "📝 Registrarse"])
+    with tab_login:
+        with st.form("Login"):
+            u = st.text_input("Usuario")
+            p = st.text_input("Contraseña", type="password")
+            if st.form_submit_button("Entrar"):
+                df_u = leer_datos("Usuarios")
+                if not df_u.empty and u in df_u['Usuario'].values:
+                    user_row = df_u[df_u['Usuario']==u]
+                    if p == str(user_row['Password'].values[0]):
+                        st.session_state.auth, st.session_state.user = True, u
+                        st.session_state.rol = user_row['Rol'].values[0]
+                        st.rerun()
+                st.error("Usuario o contraseña incorrectos")
+    with tab_registro:
+        with st.form("Registro"):
+            new_u = st.text_input("Nombre de Piloto (Usuario)")
+            new_p = st.text_input("Contraseña", type="password")
+            fav_team = st.selectbox("Tu Escudería Favorita", list(EQUIPOS_DATA.keys()))
+            confirm_p = st.text_input("Confirma contraseña", type="password")
+            if st.form_submit_button("🏎️ Unirse a la Parrilla"):
+                df_u = leer_datos("Usuarios")
+                if not new_u or not new_p: st.warning("Rellena todo.")
+                elif new_p != confirm_p: st.error("Passwords no coinciden.")
+                elif not df_u.empty and new_u in df_u['Usuario'].values: st.error("El usuario ya existe")
+                else:
+                    nuevo_reg = pd.DataFrame([{"Usuario": new_u, "Password": new_p, "Rol": "user", "Equipo": fav_team}])
+                    conn.update(worksheet="Usuarios", data=pd.concat([df_u, nuevo_reg], ignore_index=True))
+                    st.success("✅ ¡Fichaje completado!")
 
 else:
-    # 4. CARGA DE DATOS
-    df_p = leer_datos("Predicciones")
-    df_r = leer_datos("Resultados")
-    df_temp = leer_datos("Temporada")
-    df_cal = leer_datos("Calendario")
-    df_r_mundial = leer_datos("ResultadosMundial")
-    SPRINT_GPS = ["02. GP de China", "06. GP de Miami", "07. GP de Canadá", "11. GP de Gran Bretaña", "14. GP de los Países Bajos", "18. GP de Singapur"]
+    # 4. CARGA DE DATOS
+    df_p = leer_datos("Predicciones")
+    df_r = leer_datos("Resultados")
+    df_temp = leer_datos("Temporada")
+    df_cal = leer_datos("Calendario")
+    df_r_mundial = leer_datos("ResultadosMundial")
+    SPRINT_GPS = ["02. GP de China", "06. GP de Miami", "07. GP de Canadá", "11. GP de Gran Bretaña", "14. GP de los Países Bajos", "18. GP de Singapur"]
 
-    if df_p.empty: df_p = pd.DataFrame(columns=['Usuario', 'GP', 'Variable', 'Valor'])
-    if df_r.empty: df_r = pd.DataFrame(columns=['GP', 'Variable', 'Valor'])
-    if df_temp.empty: df_temp = pd.DataFrame(columns=['Usuario', 'Variable', 'Valor'])
-    if df_cal.empty: df_cal = pd.DataFrame(columns=['GP', 'LimiteQualy', 'LimiteSprint', 'LimiteCarrera'])
+    if df_p.empty: df_p = pd.DataFrame(columns=['Usuario', 'GP', 'Variable', 'Valor'])
+    if df_r.empty: df_r = pd.DataFrame(columns=['GP', 'Variable', 'Valor'])
+    if df_temp.empty: df_temp = pd.DataFrame(columns=['Usuario', 'Variable', 'Valor'])
+    if df_cal.empty: df_cal = pd.DataFrame(columns=['GP', 'LimiteQualy', 'LimiteSprint', 'LimiteCarrera'])
 
-    # --- LÓGICA DE BARRA LATERAL Y BLOQUEO CON COUNTDOWN ---
-    st.sidebar.title(f"Piloto: {st.session_state.user}")
-    gp_sel = st.sidebar.selectbox("Gran Premio", GPS)
-    
-    es_sprint = gp_sel in SPRINT_GPS
-    cal_row = df_cal[df_cal['GP'] == gp_sel]
-    now = datetime.now()
+    # --- LÓGICA DE BARRA LATERAL Y BLOQUEO CON COUNTDOWN ---
+    st.sidebar.title(f"Piloto: {st.session_state.user}")
+    gp_sel = st.sidebar.selectbox("Gran Premio", GPS)
+    
+    es_sprint = gp_sel in SPRINT_GPS
+    cal_row = df_cal[df_cal['GP'] == gp_sel]
+    now = datetime.now()
 
-    q_bloq, s_bloq, c_bloq = False, False, False
-    
-    if not cal_row.empty:
-        q_lim = pd.to_datetime(cal_row.iloc[0]['LimiteQualy'])
-        c_lim = pd.to_datetime(cal_row.iloc[0]['LimiteCarrera'])
-        
-        def obtener_countdown(fecha_limite):
-            diff = fecha_limite - now
-            if diff.total_seconds() <= 0: return "🔴 Cerrada"
-            dias = diff.days
-            horas, rem = divmod(diff.seconds, 3600)
-            minutos, _ = divmod(rem, 60)
-            if dias > 0: return f"🟢 Cierra en {dias}d {horas}h"
-            elif horas > 0: return f"⏳ ¡Date prisa! Cierra en {horas}h {minutos}m"
-            else: return f"🔥 ¡ÚLTIMOS MINUTOS! {minutos}m restantes"
+    q_bloq, s_bloq, c_bloq = False, False, False
+    
+    if not cal_row.empty:
+        q_lim = pd.to_datetime(cal_row.iloc[0]['LimiteQualy'])
+        c_lim = pd.to_datetime(cal_row.iloc[0]['LimiteCarrera'])
+        
+        def obtener_countdown(fecha_limite):
+            diff = fecha_limite - now
+            if diff.total_seconds() <= 0: return "🔴 Cerrada"
+            dias = diff.days
+            horas, rem = divmod(diff.seconds, 3600)
+            minutos, _ = divmod(rem, 60)
+            if dias > 0: return f"🟢 Cierra en {dias}d {horas}h"
+            elif horas > 0: return f"⏳ ¡Date prisa! Cierra en {horas}h {minutos}m"
+            else: return f"🔥 ¡ÚLTIMOS MINUTOS! {minutos}m restantes"
 
-        q_bloq = now > q_lim
-        c_bloq = now > c_lim
+        q_bloq = now > q_lim
+        c_bloq = now > c_lim
 
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("⏱️ Clasificación")
-        st.sidebar.markdown(f"**{obtener_countdown(q_lim)}**")
-        
-        if es_sprint:
-            s_lim = pd.to_datetime(cal_row.iloc[0]['LimiteSprint'])
-            s_bloq = now > s_lim
-            st.sidebar.subheader("🏎️ Sprint")
-            st.sidebar.markdown(f"**{obtener_countdown(s_lim)}**")
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("⏱️ Clasificación")
+        st.sidebar.markdown(f"**{obtener_countdown(q_lim)}**")
+        
+        if es_sprint:
+            s_lim = pd.to_datetime(cal_row.iloc[0]['LimiteSprint'])
+            s_bloq = now > s_lim
+            st.sidebar.subheader("🏎️ Sprint")
+            st.sidebar.markdown(f"**{obtener_countdown(s_lim)}**")
 
-        st.sidebar.subheader("🏁 Carrera")
-        st.sidebar.markdown(f"**{obtener_countdown(c_lim)}**")
-        st.sidebar.markdown("---")
-    else:
-        st.sidebar.warning("⚠️ Horarios no configurados")
+        st.sidebar.subheader("🏁 Carrera")
+        st.sidebar.markdown(f"**{obtener_countdown(c_lim)}**")
+        st.sidebar.markdown("---")
+    else:
+        st.sidebar.warning("⚠️ Horarios no configurados")
 
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.auth = False
-        st.rerun()
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.auth = False
+        st.rerun()
 
-    # --- DEFINICIÓN DE PESTAÑAS ---
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin", "🔍 El Muro"])
+    # --- DEFINICIÓN DE PESTAÑAS ---
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["✍️ Mis Apuestas", "📊 Clasificación", "🏆 Mundial", "⚙️ Admin", "🔍 El Muro"])
 
-    with tab1:
-        st.header(f"✍️ Predicciones - {gp_sel}")
-        if st.session_state.rol == 'admin':
-            st.warning("⚠️ Los administradores no apuestan.")
-        else:
-            user_gp_preds = df_p[(df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel)]
-            def get_val(var):
-                match = user_gp_preds[user_gp_preds['Variable'] == var]
-                return match.iloc[0]['Valor'] if not match.empty else "- Seleccionar -"
+    with tab1:
+        st.header(f"✍️ Predicciones - {gp_sel}")
+        if st.session_state.rol == 'admin':
+            st.warning("⚠️ Los administradores no apuestan.")
+        else:
+            user_gp_preds = df_p[(df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel)]
+            def get_val(var):
+                match = user_gp_preds[user_gp_preds['Variable'] == var]
+                return match.iloc[0]['Valor'] if not match.empty else "- Seleccionar -"
 
-            with st.form("form_gp_global"):
-                st.subheader("⏱️ Clasificación (Top 5)")
-                cq = st.columns(5)
-                q_res_raw = [cq[i].selectbox(f"P{i+1} Q", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"Q{i+1}")), key=f"q_u_{i}", disabled=q_bloq) for i in range(5)]
-                
-                s_res_raw = []
-                if es_sprint:
-                    st.divider()
-                    st.subheader("🏎️ Carrera Sprint (Top 3)")
-                    cs = st.columns(3)
-                    s_res_raw = [cs[i].selectbox(f"P{i+1} S", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"S{i+1}")), key=f"s_u_{i}", disabled=s_bloq) for i in range(3)]
+            with st.form("form_gp_global"):
+                st.subheader("⏱️ Clasificación (Top 5)")
+                cq = st.columns(5)
+                q_res_raw = [cq[i].selectbox(f"P{i+1} Q", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"Q{i+1}")), key=f"q_u_{i}", disabled=q_bloq) for i in range(5)]
+                
+                s_res_raw = []
+                if es_sprint:
+                    st.divider()
+                    st.subheader("🏎️ Carrera Sprint (Top 3)")
+                    cs = st.columns(3)
+                    s_res_raw = [cs[i].selectbox(f"P{i+1} S", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"S{i+1}")), key=f"s_u_{i}", disabled=s_bloq) for i in range(3)]
 
-                st.divider()
-                st.subheader("🏁 Carrera y Extras")
-                cc1, cc2 = st.columns(2)
-                with cc1:
-                    c_res_raw = [st.selectbox(f"P{i+1} Carrera", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"C{i+1}")), key=f"c_u_{i}", disabled=c_bloq) for i in range(5)]
-                with cc2:
-                    alo = st.selectbox("Pos. Alonso", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Alonso")), disabled=c_bloq)
-                    sai = st.selectbox("Pos. Sainz Jr.", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Sainz")), disabled=c_bloq)
-                    saf = st.selectbox("¿Safety Car?", OPCIONES_BINARIAS, index=OPCIONES_BINARIAS.index(get_val("Safety")), disabled=c_bloq)
-                    red = st.selectbox("¿Bandera Roja?", OPCIONES_BINARIAS, index=OPCIONES_BINARIAS.index(get_val("RedFlag")), disabled=c_bloq)
+                st.divider()
+                st.subheader("🏁 Carrera y Extras")
+                cc1, cc2 = st.columns(2)
+                with cc1:
+                    c_res_raw = [st.selectbox(f"P{i+1} Carrera", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"C{i+1}")), key=f"c_u_{i}", disabled=c_bloq) for i in range(5)]
+                with cc2:
+                    alo = st.selectbox("Pos. Alonso", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Alonso")), disabled=c_bloq)
+                    sai = st.selectbox("Pos. Sainz Jr.", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Sainz")), disabled=c_bloq)
+                    saf = st.selectbox("¿Safety Car?", OPCIONES_BINARIAS, index=OPCIONES_BINARIAS.index(get_val("Safety")), disabled=c_bloq)
+                    red = st.selectbox("¿Bandera Roja?", OPCIONES_BINARIAS, index=OPCIONES_BINARIAS.index(get_val("RedFlag")), disabled=c_bloq)
 
-                if st.form_submit_button("💾 Guardar Todo"):
-                    # Limpiar emojis para guardar solo el nombre
-                    q_res = [p.split(" ", 1)[-1] for p in q_res_raw]
-                    s_res = [p.split(" ", 1)[-1] for p in s_res_raw]
-                    c_res = [p.split(" ", 1)[-1] for p in c_res_raw]
-                    
-                    if "- Seleccionar -" in q_res + s_res + c_res + [alo, sai, saf, red]:
-                        st.error("⚠️ Rellena todos los campos.")
-                    else:
-                        data = []
-                        for i, v in enumerate(q_res): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
-                        for i, v in enumerate(s_res): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
-                        for i, v in enumerate(c_res): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
-                        data.extend([{"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": alo},
-                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": sai},
-                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": saf},
-                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": red}])
-                        df_p = pd.concat([df_p[~((df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel))], pd.DataFrame(data)])
-                        conn.update(worksheet="Predicciones", data=df_p)
-                        st.success("✅ ¡Guardado!")
+                if st.form_submit_button("💾 Guardar Todo"):
+                    # Limpiar emojis para guardar solo el nombre
+                    q_res = [p.split(" ", 1)[-1] for p in q_res_raw]
+                    s_res = [p.split(" ", 1)[-1] for p in s_res_raw]
+                    c_res = [p.split(" ", 1)[-1] for p in c_res_raw]
+                    
+                    if "- Seleccionar -" in q_res + s_res + c_res + [alo, sai, saf, red]:
+                        st.error("⚠️ Rellena todos los campos.")
+                    else:
+                        data = []
+                        for i, v in enumerate(q_res): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
+                        for i, v in enumerate(s_res): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
+                        for i, v in enumerate(c_res): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
+                        data.extend([{"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": alo},
+                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": sai},
+                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": saf},
+                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": red}])
+                        df_p = pd.concat([df_p[~((df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel))], pd.DataFrame(data)])
+                        conn.update(worksheet="Predicciones", data=df_p)
+                        st.success("✅ ¡Guardado!")
 
-    with tab2:
-        # --- ESTILOS CSS PEDESTAL + RACE CONTROL ---
-        st.markdown("""
-            <style>
-            .podium-container { display: flex; align-items: flex-end; justify-content: center; gap: 10px; padding: 40px 0 20px 0; }
-            .podium-card { 
-                text-align: center; padding: 20px 10px; border-radius: 10px 10px 5px 5px; 
-                background: #1a1a24; width: 100%; display: flex; flex-direction: column;
-                justify-content: space-between; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;
-            }
-            .p1 { height: 320px; border-top: 8px solid #FFD700; z-index: 2; }
-            .p2 { height: 260px; border-top: 8px solid #C0C0C0; opacity: 0.9; }
-            .p3 { height: 230px; border-top: 8px solid #CD7F32; opacity: 0.8; }
-            
-            .podium-card h2, .podium-card h3, .podium-card p, .podium-card div { 
-                border-left: none !important; padding-left: 0 !important; margin: 0 !important; font-style: normal !important;
-            }
-            .rank-label { font-size: 2.2em; font-weight: 900; color: #fff; font-family: 'Orbitron'; }
-            .driver-name { font-size: 1.3em; color: #ffffff; font-weight: 700; margin-top: 15px !important; }
-            .points-label { font-size: 1.5em; color: #00ff00; font-weight: 900; font-family: 'Orbitron'; padding-bottom: 15px !important; }
+    with tab2:
+        # --- ESTILOS CSS PEDESTAL + RACE CONTROL ---
+        st.markdown("""
+            <style>
+            .podium-container { display: flex; align-items: flex-end; justify-content: center; gap: 10px; padding: 40px 0 20px 0; }
+            .podium-card { 
+                text-align: center; padding: 20px 10px; border-radius: 10px 10px 5px 5px; 
+                background: #1a1a24; width: 100%; display: flex; flex-direction: column;
+                justify-content: space-between; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;
+            }
+            .p1 { height: 320px; border-top: 8px solid #FFD700; z-index: 2; }
+            .p2 { height: 260px; border-top: 8px solid #C0C0C0; opacity: 0.9; }
+            .p3 { height: 230px; border-top: 8px solid #CD7F32; opacity: 0.8; }
+            
+            .podium-card h2, .podium-card h3, .podium-card p, .podium-card div { 
+                border-left: none !important; padding-left: 0 !important; margin: 0 !important; font-style: normal !important;
+            }
+            .rank-label { font-size: 2.2em; font-weight: 900; color: #fff; font-family: 'Orbitron'; }
+            .driver-name { font-size: 1.3em; color: #ffffff; font-weight: 700; margin-top: 15px !important; }
+            .points-label { font-size: 1.5em; color: #00ff00; font-weight: 900; font-family: 'Orbitron'; padding-bottom: 15px !important; }
 
-            /* Estilo para las filas de clasificación y Race Control */
-            .driver-card { 
-                display: flex; align-items: center; justify-content: space-between; 
-                padding: 12px 25px; margin: 10px 0; border-radius: 5px; 
-                background: #15151e; border-left: 10px solid; color: white;
-            }
-            .telemetry-box { display: flex; gap: 15px; font-size: 0.85em; opacity: 0.8; margin-right: 20px; }
-            .telemetry-box b { color: #e10600; }
-            </style>
-        """, unsafe_allow_html=True)
+            /* Estilo para las filas de clasificación y Race Control */
+            .driver-card { 
+                display: flex; align-items: center; justify-content: space-between; 
+                padding: 12px 25px; margin: 10px 0; border-radius: 5px; 
+                background: #15151e; border-left: 10px solid; color: white;
+            }
+            .telemetry-box { display: flex; gap: 15px; font-size: 0.85em; opacity: 0.8; margin-right: 20px; }
+            .telemetry-box b { color: #e10600; }
+            </style>
+        """, unsafe_allow_html=True)
 
-        subtab_gen, subtab_gp = st.tabs(["🌎 CLASIFICACIÓN MUNDIAL", "🏁 RACE CONTROL"])
+        subtab_gen, subtab_gp = st.tabs(["🌎 CLASIFICACIÓN MUNDIAL", "🏁 RACE CONTROL"])
 
-        # --- LÓGICA DE DATOS ---
-        df_users_ranking = leer_datos("Usuarios")
-        if not df_users_ranking.empty:
-            participantes = df_users_ranking[df_users_ranking['Rol'] == 'user']['Usuario'].unique()
-            
-            def get_team_info(usuario):
-                row = df_users_ranking[df_users_ranking['Usuario'] == usuario]
-                team = row['Equipo'].values[0] if not row.empty and 'Equipo' in row.columns else "McLaren"
-                return EQUIPOS_DATA.get(team, EQUIPOS_DATA["McLaren"])
+        # --- LÓGICA DE DATOS ---
+        df_users_ranking = leer_datos("Usuarios")
+        if not df_users_ranking.empty:
+            participantes = df_users_ranking[df_users_ranking['Rol'] == 'user']['Usuario'].unique()
+            
+            def get_team_info(usuario):
+                row = df_users_ranking[df_users_ranking['Usuario'] == usuario]
+                team = row['Equipo'].values[0] if not row.empty and 'Equipo' in row.columns else "McLaren"
+                return EQUIPOS_DATA.get(team, EQUIPOS_DATA["McLaren"])
 
-        # --- SUBPESTAÑA 1: MUNDIAL ---
-        with subtab_gen:
-            ranking_list = []
-            for u in participantes:
-                p_gps = sum([calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g]) for g in GPS])
-                p_mundial = calcular_puntos_mundial(df_temp[df_temp['Usuario']==u], df_r_mundial)
-                ranking_list.append({"Piloto": u, "TOTAL": p_gps + p_mundial})
-            
-            df_final = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
+        # --- SUBPESTAÑA 1: MUNDIAL ---
+        with subtab_gen:
+            ranking_list = []
+            for u in participantes:
+                p_gps = sum([calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==g)], df_r[df_r['GP']==g]) for g in GPS])
+                p_mundial = calcular_puntos_mundial(df_temp[df_temp['Usuario']==u], df_r_mundial)
+                ranking_list.append({"Piloto": u, "TOTAL": p_gps + p_mundial})
+            
+            df_final = pd.DataFrame(ranking_list).sort_values("TOTAL", ascending=False)
 
-            if not df_final.empty:
-                top_3 = df_final.head(3).to_dict('records')
-                st.markdown('<div class="podium-container">', unsafe_allow_html=True)
-                cols = st.columns([1, 1.2, 1])
-                orden = [{"idx": 1, "css": "p2", "lbl": "P2"}, {"idx": 0, "css": "p1", "lbl": "P1"}, {"idx": 2, "css": "p3", "lbl": "P3"}]
-                
-                for i, c in enumerate(orden):
-                    if c["idx"] < len(top_3):
-                        d = top_3[c["idx"]]
-                        team = get_team_info(d['Piloto'])
-                        with cols[i]:
-                            st.markdown(f"""
-                                <div class="podium-card {c['css']}">
-                                    <div class="rank-label">{c['lbl']}</div>
-                                    <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center;">
-                                        <img src="{team['logo']}" width="80">
-                                    </div>
-                                    <div class="driver-name">{d['Piloto']}</div>
-                                    <div class="points-label">{int(d['TOTAL'])} PTS</div>
-                                </div>
-                            """, unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-                st.divider()
+            if not df_final.empty:
+                top_3 = df_final.head(3).to_dict('records')
+                st.markdown('<div class="podium-container">', unsafe_allow_html=True)
+                cols = st.columns([1, 1.2, 1])
+                orden = [{"idx": 1, "css": "p2", "lbl": "P2"}, {"idx": 0, "css": "p1", "lbl": "P1"}, {"idx": 2, "css": "p3", "lbl": "P3"}]
+                
+                for i, c in enumerate(orden):
+                    if c["idx"] < len(top_3):
+                        d = top_3[c["idx"]]
+                        team = get_team_info(d['Piloto'])
+                        with cols[i]:
+                            st.markdown(f"""
+                                <div class="podium-card {c['css']}">
+                                    <div class="rank-label">{c['lbl']}</div>
+                                    <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center;">
+                                        <img src="{team['logo']}" width="80">
+                                    </div>
+                                    <div class="driver-name">{d['Piloto']}</div>
+                                    <div class="points-label">{int(d['TOTAL'])} PTS</div>
+                                </div>
+                            """, unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+                st.divider()
 
-                if len(df_final) > 3:
-                    for i, row in df_final.iloc[3:].iterrows():
-                        team = get_team_info(row['Piloto'])
-                        st.markdown(f"""
-                            <div class="driver-card" style="border-left-color: {team['color']};">
-                                <div style="display:flex; align-items:center; gap:20px;">
-                                    <span style="font-family:Orbitron; font-size:1.6em; width:45px; font-weight:800;">{list(df_final['Piloto']).index(row['Piloto'])+1}</span>
-                                    <img src="{team['logo']}" width="40">
-                                    <span style="font-size:1.2em; font-weight:700;">{row['Piloto']}</span>
-                                </div>
-                                <div style="text-align:right;">
-                                    <span style="font-family:Orbitron; color:#00ff00; font-size:1.4em; font-weight:800;">{int(row['TOTAL'])} PTS</span>
-                                </div>
-                            </div>
-                        """, unsafe_allow_html=True)
+                if len(df_final) > 3:
+                    for i, row in df_final.iloc[3:].iterrows():
+                        team = get_team_info(row['Piloto'])
+                        st.markdown(f"""
+                            <div class="driver-card" style="border-left-color: {team['color']};">
+                                <div style="display:flex; align-items:center; gap:20px;">
+                                    <span style="font-family:Orbitron; font-size:1.6em; width:45px; font-weight:800;">{list(df_final['Piloto']).index(row['Piloto'])+1}</span>
+                                    <img src="{team['logo']}" width="40">
+                                    <span style="font-size:1.2em; font-weight:700;">{row['Piloto']}</span>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span style="font-family:Orbitron; color:#00ff00; font-size:1.4em; font-weight:800;">{int(row['TOTAL'])} PTS</span>
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
 
-        # --- SUBPESTAÑA 2: RACE CONTROL (GP ESPECÍFICO) ---
-        with subtab_gp:
-            gp_sel_rank = st.selectbox("Analizar Gran Premio:", GPS, key="gp_rank_control")
-            res_real = df_r[df_r['GP'] == gp_sel_rank]
-            
-            if res_real.empty:
-                st.info("📢 Resultados no disponibles. Esperando a que el Admin publique los datos oficiales.")
-            else:
-                detalles_gp = []
-                for u in participantes:
-                    # Usamos detalle=True para el desglose
-                    d = calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==gp_sel_rank)], res_real, detalle=True)
-                    detalles_gp.append({"Piloto": u, **d, "Total": sum(d.values())})
-                
-                df_det = pd.DataFrame(detalles_gp).sort_values("Total", ascending=False)
-                
-                for i, r in df_det.iterrows():
-                    team = get_team_info(r['Piloto'])
-                    pos = list(df_det['Piloto']).index(r['Piloto']) + 1
-                    
-                    st.markdown(f"""
-                        <div class="driver-card" style="border-left-color: {team['color']}; background: #0e0e12; margin: 5px 0;">
-                            <div style="display:flex; align-items:center; gap:15px; flex-grow:1;">
-                                <span style="font-family:Orbitron; font-size:1.2em; width:30px; opacity:0.6;">{pos}</span>
-                                <img src="{team['logo']}" width="30">
-                                <span style="font-weight:700;">{r['Piloto']}</span>
-                            </div>
-                            <div class="telemetry-box">
-                                <span>Q:<b>{r['Qualy']}</b></span>
-                                <span>S:<b>{r['Sprint']}</b></span>
-                                <span>C:<b>{r['Carrera']}</b></span>
-                                <span>+:<b>{r['Extras']}</b></span>
-                            </div>
-                            <div style="color:#00ff00; font-weight:800; font-family:Orbitron; font-size:1.1em; width:90px; text-align:right;">
-                                {int(r['Total'])} PTS
-                            </div>
-                        </div>
-                    """, unsafe_allow_html=True)
+        # --- SUBPESTAÑA 2: RACE CONTROL (GP ESPECÍFICO) ---
+        with subtab_gp:
+            gp_sel_rank = st.selectbox("Analizar Gran Premio:", GPS, key="gp_rank_control")
+            res_real = df_r[df_r['GP'] == gp_sel_rank]
+            
+            if res_real.empty:
+                st.info("📢 Resultados no disponibles. Esperando a que el Admin publique los datos oficiales.")
+            else:
+                detalles_gp = []
+                for u in participantes:
+                    # Usamos detalle=True para el desglose
+                    d = calcular_puntos_gp(df_p[(df_p['Usuario']==u) & (df_p['GP']==gp_sel_rank)], res_real, detalle=True)
+                    detalles_gp.append({"Piloto": u, **d, "Total": sum(d.values())})
+                
+                df_det = pd.DataFrame(detalles_gp).sort_values("Total", ascending=False)
+                
+                for i, r in df_det.iterrows():
+                    team = get_team_info(r['Piloto'])
+                    pos = list(df_det['Piloto']).index(r['Piloto']) + 1
+                    
+                    st.markdown(f"""
+                        <div class="driver-card" style="border-left-color: {team['color']}; background: #0e0e12; margin: 5px 0;">
+                            <div style="display:flex; align-items:center; gap:15px; flex-grow:1;">
+                                <span style="font-family:Orbitron; font-size:1.2em; width:30px; opacity:0.6;">{pos}</span>
+                                <img src="{team['logo']}" width="30">
+                                <span style="font-weight:700;">{r['Piloto']}</span>
+                            </div>
+                            <div class="telemetry-box">
+                                <span>Q:<b>{r['Qualy']}</b></span>
+                                <span>S:<b>{r['Sprint']}</b></span>
+                                <span>C:<b>{r['Carrera']}</b></span>
+                                <span>+:<b>{r['Extras']}</b></span>
+                            </div>
+                            <div style="color:#00ff00; font-weight:800; font-family:Orbitron; font-size:1.1em; width:90px; text-align:right;">
+                                {int(r['Total'])} PTS
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-    with tab3:
-        st.header("🏆 Mundial de Temporada")
-        if st.session_state.rol == 'admin':
-            st.warning("⚠️ Los administradores no participan en el Mundial.")
-        else:
-            if MUNDIAL_BLOQUEADO:
-                st.info("🔒 El mercado de fichajes está cerrado. Estas son tus apuestas:")
-                df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
-                if not df_u_temp.empty:
-                    st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
-                else:
-                    st.error("No realizaste predicciones antes del cierre.")
-            else:
-                st.success(f"⏳ Tienes hasta el {FECHA_LIMITE_TEMPORADA.strftime('%d/%m %H:%M')} para configurar tu parrilla.")
-                df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
-                
-                with st.form("form_mundial_completo"):
-                    c_pil, c_equ = st.columns(2)
-                    
-                    with c_pil:
-                        st.subheader("👤 Top Pilotos")
-                        res_p_raw = []
-                        for i in range(22):
-                            v_actual = df_u_temp[df_u_temp['Variable'] == f"P{i+1}"]['Valor'].values
-                            idx = get_idx_emoji(v_actual[0]) if len(v_actual)>0 else 0
-                            res_p_raw.append(st.selectbox(f"P{i+1}", PILOTOS_CON_EMOJI, index=idx, key=f"m_p_{i}"))
-                    
-                    with c_equ:
-                        st.subheader("🏎️ Top Equipos")
-                        res_e = []
-                        for i in range(11):
-                            v_actual = df_u_temp[df_u_temp['Variable'] == f"E{i+1}"]['Valor'].values
-                            idx = (EQUIPOS_2026.index(v_actual[0])+1) if (len(v_actual)>0 and v_actual[0] in EQUIPOS_2026) else 0
-                            res_e.append(st.selectbox(f"E{i+1}", ["- Seleccionar -"] + EQUIPOS_2026, index=idx, key=f"m_e_{i}"))
-                    
-                    if st.form_submit_button("💾 Guardar Mundial 2026"):
-                        # Limpiamos emojis
-                        res_p = [p.split(" ", 1)[-1] for p in res_p_raw]
-                        if "- Seleccionar -" in res_p or "- Seleccionar -" in res_e:
-                            st.error("⚠️ Debes completar todas las posiciones.")
-                        elif len(set(res_p)) < 22 or len(set(res_e)) < 11:
-                            st.error("⚠️ ¡Hay duplicados! Revisa que no hayas repetido pilotos o equipos.")
-                        else:
-                            new_m = []
-                            for i, v in enumerate(res_p): new_m.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
-                            for i, v in enumerate(res_e): new_m.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
-                            df_temp = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(new_m)])
-                            conn.update(worksheet="Temporada", data=df_temp)
-                            st.success("✅ ¡Mundial guardado! Nos vemos en Abu Dabi.")
+    with tab3:
+        st.header("🏆 Mundial de Temporada")
+        if st.session_state.rol == 'admin':
+            st.warning("⚠️ Los administradores no participan en el Mundial.")
+        else:
+            if MUNDIAL_BLOQUEADO:
+                st.info("🔒 El mercado de fichajes está cerrado. Estas son tus apuestas:")
+                df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
+                if not df_u_temp.empty:
+                    st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
+                else:
+                    st.error("No realizaste predicciones antes del cierre.")
+            else:
+                st.success(f"⏳ Tienes hasta el {FECHA_LIMITE_TEMPORADA.strftime('%d/%m %H:%M')} para configurar tu parrilla.")
+                df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
+                
+                with st.form("form_mundial_completo"):
+                    c_pil, c_equ = st.columns(2)
+                    
+                    with c_pil:
+                        st.subheader("👤 Top Pilotos")
+                        res_p_raw = []
+                        for i in range(22):
+                            v_actual = df_u_temp[df_u_temp['Variable'] == f"P{i+1}"]['Valor'].values
+                            idx = get_idx_emoji(v_actual[0]) if len(v_actual)>0 else 0
+                            res_p_raw.append(st.selectbox(f"P{i+1}", PILOTOS_CON_EMOJI, index=idx, key=f"m_p_{i}"))
+                    
+                    with c_equ:
+                        st.subheader("🏎️ Top Equipos")
+                        res_e = []
+                        for i in range(11):
+                            v_actual = df_u_temp[df_u_temp['Variable'] == f"E{i+1}"]['Valor'].values
+                            idx = (EQUIPOS_2026.index(v_actual[0])+1) if (len(v_actual)>0 and v_actual[0] in EQUIPOS_2026) else 0
+                            res_e.append(st.selectbox(f"E{i+1}", ["- Seleccionar -"] + EQUIPOS_2026, index=idx, key=f"m_e_{i}"))
+                    
+                    if st.form_submit_button("💾 Guardar Mundial 2026"):
+                        # Limpiamos emojis
+                        res_p = [p.split(" ", 1)[-1] for p in res_p_raw]
+                        if "- Seleccionar -" in res_p or "- Seleccionar -" in res_e:
+                            st.error("⚠️ Debes completar todas las posiciones.")
+                        elif len(set(res_p)) < 22 or len(set(res_e)) < 11:
+                            st.error("⚠️ ¡Hay duplicados! Revisa que no hayas repetido pilotos o equipos.")
+                        else:
+                            new_m = []
+                            for i, v in enumerate(res_p): new_m.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
+                            for i, v in enumerate(res_e): new_m.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
+                            df_temp = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(new_m)])
+                            conn.update(worksheet="Temporada", data=df_temp)
+                            st.success("✅ ¡Mundial guardado! Nos vemos en Abu Dabi.")
 
 
-    with tab4:
-        if st.session_state.rol == 'admin':
-            adm_gp, adm_final, adm_fechas = st.tabs(["🏁 Resultados GP", "🌎 Mundial Final", "📅 Fechas Límite"])
-            
-            with adm_gp:
-                st.subheader(f"Publicar Resultados Reales: {gp_sel}")
-                with st.form("admin_gp_results"):
-                    ac1, ac2 = st.columns(2)
-                    with ac1:
-                        st.markdown("**Top 5 Clasificación**")
-                        aq_raw = [st.selectbox(f"Q{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arq{i}") for i in range(5)]
-                        st.markdown("**Top 5 Carrera**")
-                        ac_raw = [st.selectbox(f"C{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arc{i}") for i in range(5)]
-                    
-                    with ac2:
-                        st.markdown("**Eventos y Españoles**")
-                        res_alo = st.selectbox("Alonso Real", POSICIONES_CARRERA, index=0, key="ara_adm")
-                        res_sai = st.selectbox("Sainz Real", POSICIONES_CARRERA, index=0, key="ars_adm")
-                        res_sf = st.selectbox("Safety / VSC Real", OPCIONES_BINARIAS, index=0, key="arsf_adm")
-                        res_rf = st.selectbox("Red Flag Real", OPCIONES_BINARIAS, index=0, key="arrf_adm")
-                        
-                        as_raw = []
-                        if es_sprint:
-                            st.markdown("---")
-                            st.markdown("**Top 3 Sprint**")
-                            as_raw = [st.selectbox(f"S{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arsprint{i}") for i in range(3)]
-                    
-                    if st.form_submit_button("📢 Publicar Resultados"):
-                        # Limpiamos los emojis antes de guardar en la base de datos
-                        aq = [v.split(" ", 1)[-1] for v in aq_raw]
-                        ac = [v.split(" ", 1)[-1] for v in ac_raw]
-                        as_res = [v.split(" ", 1)[-1] for v in as_raw]
-                        
-                        check_list = aq + ac + as_res + [res_alo, res_sai, res_sf, res_rf]
-                        if "- Seleccionar -" in check_list:
-                            st.error("⚠️ Error: Selecciona todos los resultados.")
-                        else:
-                            r_data = []
-                            for i, v in enumerate(aq): r_data.append({"GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
-                            for i, v in enumerate(ac): r_data.append({"GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
-                            for i, v in enumerate(as_res): r_data.append({"GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
-                            r_data.extend([
-                                {"GP": gp_sel, "Variable": "Alonso", "Valor": res_alo},
-                                {"GP": gp_sel, "Variable": "Sainz", "Valor": res_sai},
-                                {"GP": gp_sel, "Variable": "Safety", "Valor": res_sf},
-                                {"GP": gp_sel, "Variable": "RedFlag", "Valor": res_rf}
-                            ])
-                            df_r = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(r_data)])
-                            conn.update(worksheet="Resultados", data=df_r)
-                            st.success(f"✅ Resultados de {gp_sel} publicados.")
-                            st.balloons()
+    with tab4:
+        if st.session_state.rol == 'admin':
+            adm_gp, adm_final, adm_fechas = st.tabs(["🏁 Resultados GP", "🌎 Mundial Final", "📅 Fechas Límite"])
+            
+            with adm_gp:
+                st.subheader(f"Publicar Resultados Reales: {gp_sel}")
+                with st.form("admin_gp_results"):
+                    ac1, ac2 = st.columns(2)
+                    with ac1:
+                        st.markdown("**Top 5 Clasificación**")
+                        aq_raw = [st.selectbox(f"Q{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arq{i}") for i in range(5)]
+                        st.markdown("**Top 5 Carrera**")
+                        ac_raw = [st.selectbox(f"C{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arc{i}") for i in range(5)]
+                    
+                    with ac2:
+                        st.markdown("**Eventos y Españoles**")
+                        res_alo = st.selectbox("Alonso Real", POSICIONES_CARRERA, index=0, key="ara_adm")
+                        res_sai = st.selectbox("Sainz Real", POSICIONES_CARRERA, index=0, key="ars_adm")
+                        res_sf = st.selectbox("Safety / VSC Real", OPCIONES_BINARIAS, index=0, key="arsf_adm")
+                        res_rf = st.selectbox("Red Flag Real", OPCIONES_BINARIAS, index=0, key="arrf_adm")
+                        
+                        as_raw = []
+                        if es_sprint:
+                            st.markdown("---")
+                            st.markdown("**Top 3 Sprint**")
+                            as_raw = [st.selectbox(f"S{i+1} Real", PILOTOS_CON_EMOJI, index=0, key=f"arsprint{i}") for i in range(3)]
+                    
+                    if st.form_submit_button("📢 Publicar Resultados"):
+                        # Limpiamos los emojis antes de guardar en la base de datos
+                        aq = [v.split(" ", 1)[-1] for v in aq_raw]
+                        ac = [v.split(" ", 1)[-1] for v in ac_raw]
+                        as_res = [v.split(" ", 1)[-1] for v in as_raw]
+                        
+                        check_list = aq + ac + as_res + [res_alo, res_sai, res_sf, res_rf]
+                        if "- Seleccionar -" in check_list:
+                            st.error("⚠️ Error: Selecciona todos los resultados.")
+                        else:
+                            r_data = []
+                            for i, v in enumerate(aq): r_data.append({"GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
+                            for i, v in enumerate(ac): r_data.append({"GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
+                            for i, v in enumerate(as_res): r_data.append({"GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
+                            r_data.extend([
+                                {"GP": gp_sel, "Variable": "Alonso", "Valor": res_alo},
+                                {"GP": gp_sel, "Variable": "Sainz", "Valor": res_sai},
+                                {"GP": gp_sel, "Variable": "Safety", "Valor": res_sf},
+                                {"GP": gp_sel, "Variable": "RedFlag", "Valor": res_rf}
+                            ])
+                            df_r = pd.concat([df_r[df_r['GP'] != gp_sel], pd.DataFrame(r_data)])
+                            conn.update(worksheet="Resultados", data=df_r)
+                            st.success(f"✅ Resultados de {gp_sel} publicados.")
+                            st.balloons()
 
-            with adm_final:
-                st.subheader("Resultados Finales del Campeonato")
-                with st.form("admin_mundial_final"):
-                    am1, am2 = st.columns(2)
-                    f_p_raw = [am1.selectbox(f"P{i+1} Mundial", PILOTOS_CON_EMOJI, index=0, key=f"fin_p_{i}") for i in range(22)]
-                    f_e = [am2.selectbox(f"E{i+1} Mundial", OPCIONES_EQUIPOS, index=0, key=f"fin_e_{i}") for i in range(11)]
-                    if st.form_submit_button("🏆 Publicar Mundial Final"):
-                        f_p = [v.split(" ", 1)[-1] for v in f_p_raw]
-                        if "- Seleccionar -" in f_p or "- Seleccionar -" in f_e:
-                            st.error("⚠️ Parrilla incompleta.")
-                        else:
-                            m_f = []
-                            for i, v in enumerate(f_p): m_f.append({"Variable": f"P{i+1}", "Valor": v})
-                            for i, v in enumerate(f_e): m_f.append({"Variable": f"E{i+1}", "Valor": v})
-                            conn.update(worksheet="ResultadosMundial", data=pd.DataFrame(m_f))
-                            st.success("🏆 Resultados mundiales guardados.")
+            with adm_final:
+                st.subheader("Resultados Finales del Campeonato")
+                with st.form("admin_mundial_final"):
+                    am1, am2 = st.columns(2)
+                    f_p_raw = [am1.selectbox(f"P{i+1} Mundial", PILOTOS_CON_EMOJI, index=0, key=f"fin_p_{i}") for i in range(22)]
+                    f_e = [am2.selectbox(f"E{i+1} Mundial", OPCIONES_EQUIPOS, index=0, key=f"fin_e_{i}") for i in range(11)]
+                    if st.form_submit_button("🏆 Publicar Mundial Final"):
+                        f_p = [v.split(" ", 1)[-1] for v in f_p_raw]
+                        if "- Seleccionar -" in f_p or "- Seleccionar -" in f_e:
+                            st.error("⚠️ Parrilla incompleta.")
+                        else:
+                            m_f = []
+                            for i, v in enumerate(f_p): m_f.append({"Variable": f"P{i+1}", "Valor": v})
+                            for i, v in enumerate(f_e): m_f.append({"Variable": f"E{i+1}", "Valor": v})
+                            conn.update(worksheet="ResultadosMundial", data=pd.DataFrame(m_f))
+                            st.success("🏆 Resultados mundiales guardados.")
 
-            with adm_fechas:
-                st.subheader("Configurar Horarios")
-                with st.form("f_cal_admin"):
-                    f_gp = st.selectbox("Gran Premio", GPS, key="f_gp_cal")
-                    c_q, c_s, c_c = st.columns(3)
-                    dq, tq = c_q.date_input("Fecha Qualy"), c_q.time_input("Hora Qualy")
-                    ds, ts = c_s.date_input("Fecha Sprint"), c_s.time_input("Hora Sprint")
-                    dc, tc = c_c.date_input("Fecha Carrera"), c_c.time_input("Hora Carrera")
-                    if st.form_submit_button("📅 Guardar Calendario"):
-                        c_data = {
-                            "GP": f_gp, 
-                            "LimiteQualy": datetime.combine(dq, tq).strftime('%Y-%m-%d %H:%M:%S'),
-                            "LimiteSprint": datetime.combine(ds, ts).strftime('%Y-%m-%d %H:%M:%S'),
-                            "LimiteCarrera": datetime.combine(dc, tc).strftime('%Y-%m-%d %H:%M:%S')
-                        }
-                        df_cal = pd.concat([df_cal[df_cal['GP'] != f_gp], pd.DataFrame([c_data])])
-                        conn.update(worksheet="Calendario", data=df_cal)
-                        st.success(f"✅ Horarios para {f_gp} actualizados.")
-        else:
-            st.error("⛔ Acceso restringido.")
+            with adm_fechas:
+                st.subheader("Configurar Horarios")
+                with st.form("f_cal_admin"):
+                    f_gp = st.selectbox("Gran Premio", GPS, key="f_gp_cal")
+                    c_q, c_s, c_c = st.columns(3)
+                    dq, tq = c_q.date_input("Fecha Qualy"), c_q.time_input("Hora Qualy")
+                    ds, ts = c_s.date_input("Fecha Sprint"), c_s.time_input("Hora Sprint")
+                    dc, tc = c_c.date_input("Fecha Carrera"), c_c.time_input("Hora Carrera")
+                    if st.form_submit_button("📅 Guardar Calendario"):
+                        c_data = {
+                            "GP": f_gp, 
+                            "LimiteQualy": datetime.combine(dq, tq).strftime('%Y-%m-%d %H:%M:%S'),
+                            "LimiteSprint": datetime.combine(ds, ts).strftime('%Y-%m-%d %H:%M:%S'),
+                            "LimiteCarrera": datetime.combine(dc, tc).strftime('%Y-%m-%d %H:%M:%S')
+                        }
+                        df_cal = pd.concat([df_cal[df_cal['GP'] != f_gp], pd.DataFrame([c_data])])
+                        conn.update(worksheet="Calendario", data=df_cal)
+                        st.success(f"✅ Horarios para {f_gp} actualizados.")
+        else:
+            st.error("⛔ Acceso restringido.")
 
-    with tab5:
-        st.header("🔍 El Muro de la Verdad")
-        df_muro = df_p[df_p['GP'] == gp_sel].copy()
-        if not df_muro.empty:
-            # Creamos el pivote
-            df_piv = df_muro.pivot(index='Usuario', columns='Variable', values='Valor')
-            
-            # Definimos el orden lógico de las columnas
-            orden_columnas = (
-                [f"Q{i+1}" for i in range(5)] + 
-                ([f"S{i+1}" for i in range(3)] if es_sprint else []) + 
-                [f"C{i+1}" for i in range(5)] + 
-                ["Alonso", "Sainz", "Safety", "RedFlag"]
-            )
-            
-            # Solo mostramos las columnas que realmente existan en el DF
-            cols_a_mostrar = [c for c in orden_columnas if c in df_piv.columns]
-            
-            st.dataframe(
-                df_piv[cols_a_mostrar], 
-                use_container_width=True,
-                column_config={
-                    "Usuario": st.column_config.TextColumn("Piloto")
-                }
-            )
-        else:
-            st.info("Todavía no hay apuestas registradas para este Gran Premio.")
+    with tab5:
+        st.header("🔍 El Muro de la Verdad")
+        df_muro = df_p[df_p['GP'] == gp_sel].copy()
+        if not df_muro.empty:
+            # Creamos el pivote
+            df_piv = df_muro.pivot(index='Usuario', columns='Variable', values='Valor')
+            
+            # Definimos el orden lógico de las columnas
+            orden_columnas = (
+                [f"Q{i+1}" for i in range(5)] + 
+                ([f"S{i+1}" for i in range(3)] if es_sprint else []) + 
+                [f"C{i+1}" for i in range(5)] + 
+                ["Alonso", "Sainz", "Safety", "RedFlag"]
+            )
+            
+            # Solo mostramos las columnas que realmente existan en el DF
+            cols_a_mostrar = [c for c in orden_columnas if c in df_piv.columns]
+            
+            st.dataframe(
+                df_piv[cols_a_mostrar], 
+                use_container_width=True,
+                column_config={
+                    "Usuario": st.column_config.TextColumn("Piloto")
+                }
+            )
+        else:
+            st.info("Todavía no hay apuestas registradas para este Gran Premio.")
