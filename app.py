@@ -41,12 +41,12 @@ EQUIPOS_DATA = {
 }
 
 PILOTO_A_EQUIPO = {
-    "Norris": "McLaren", "Piastri": "McLaren", "Antonelli": "Mercedes", "Russell": "Mercedes",
-    "Verstappen": "Red Bull", "Hadjar": "Red Bull", "Leclerc": "Ferrari", "Hamilton": "Ferrari",
-    "Albon": "Williams", "Sainz Jr.": "Williams", "Lawson": "Racing Bulls", "Lindblad": "Racing Bulls",
-    "Alonso": "Aston Martin", "Stroll": "Aston Martin", "Ocon": "Haas", "Bearman": "Haas",
-    "Bortoleto": "Audi", "Hülkenberg": "Audi", "Gasly": "Alpine", "Colapinto": "Alpine",
-    "Perez": "Cadillac", "Bottas": "Cadillac"
+    "Norris": "McLaren", "Piastri": "McLaren", "Antonelli": "Mercedes", "Russell": "Mercedes",
+    "Verstappen": "Red Bull", "Hadjar": "Red Bull", "Leclerc": "Ferrari", "Hamilton": "Ferrari",
+    "Albon": "Williams", "Sainz Jr.": "Williams", "Lawson": "Racing Bulls", "Lindblad": "Racing Bulls",
+    "Alonso": "Aston Martin", "Stroll": "Aston Martin", "Ocon": "Haas", "Bearman": "Haas",
+    "Bortoleto": "Audi", "Hülkenberg": "Audi", "Gasly": "Alpine", "Colapinto": "Alpine",
+    "Perez": "Cadillac", "Bottas": "Cadillac"
 }
 
 PILOTOS_CON_EMOJI = ["- Seleccionar -"] + [f"{EQUIPOS_DATA[PILOTO_A_EQUIPO[p]]['emoji']} {p}" for p in PILOTOS_2026]
