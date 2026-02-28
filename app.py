@@ -264,68 +264,73 @@ else:
         if st.session_state.rol == 'admin':
             st.warning("⚠️ Los administradores no apuestan.")
         else:
+            # Obtener predicciones actuales del usuario para este GP
             user_gp_preds = df_p[(df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel)]
+            
             def get_val(var):
                 match = user_gp_preds[user_gp_preds['Variable'] == var]
                 return match.iloc[0]['Valor'] if not match.empty else "- Seleccionar -"
 
             with st.form("form_gp_global"):
-                # --- QUALY ---
+                # --- SECCIÓN QUALY ---
                 st.subheader("⏱️ Clasificación (Top 5)")
                 cq = st.columns(5)
-                q_res_raw = [cq[i].selectbox(f"P{i+1} Q", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"Q{i+1}")), key=f"q_u_{i}", disabled=q_bloq) for i in range(5)]
+                q_raw = [cq[i].selectbox(f"P{i+1} Q", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"Q{i+1}")), key=f"q_u_{i}", disabled=q_bloq) for i in range(5)]
                 
-                # --- SPRINT ---
-                s_res_raw = []
+                # --- SECCIÓN SPRINT ---
+                s_raw = []
                 if es_sprint:
                     st.divider()
                     st.subheader("🏎️ Carrera Sprint (Top 3)")
                     cs = st.columns(3)
-                    s_res_raw = [cs[i].selectbox(f"P{i+1} S", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"S{i+1}")), key=f"s_u_{i}", disabled=s_bloq) for i in range(3)]
+                    s_raw = [cs[i].selectbox(f"P{i+1} S", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"S{i+1}")), key=f"s_u_{i}", disabled=s_bloq) for i in range(3)]
 
-                # --- CARRERA ---
+                # --- SECCIÓN CARRERA Y EXTRAS ---
                 st.divider()
                 st.subheader("🏁 Carrera y Extras")
                 cc1, cc2 = st.columns(2)
                 with cc1:
-                    c_res_raw = [st.selectbox(f"P{i+1} Carrera", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"C{i+1}")), key=f"c_u_{i}", disabled=c_bloq) for i in range(5)]
+                    c_raw = [st.selectbox(f"P{i+1} Carrera", PILOTOS_CON_EMOJI, index=get_idx_emoji(get_val(f"C{i+1}")), key=f"c_u_{i}", disabled=c_bloq) for i in range(5)]
                 with cc2:
                     alo = st.selectbox("Pos. Alonso", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Alonso")), disabled=c_bloq)
                     sai = st.selectbox("Pos. Sainz Jr.", POSICIONES_CARRERA, index=POSICIONES_CARRERA.index(get_val("Sainz")), disabled=c_bloq)
                     saf = st.selectbox("¿Safety Car?", OPCIONES_BINARIAS, index=OPCIONES_BINARIAS.index(get_val("Safety")), disabled=c_bloq)
                     red = st.selectbox("¿Bandera Roja?", OPCIONES_BINARIAS, index=OPCIONES_BINARIAS.index(get_val("RedFlag")), disabled=c_bloq)
 
-                # --- VALIDACIÓN DE DUPLICADOS ---
-                q_nombres = [p.split(" ", 1)[-1] for p in q_res_raw]
-                c_nombres = [p.split(" ", 1)[-1] for p in c_res_raw]
-                s_nombres = [p.split(" ", 1)[-1] for p in s_res_raw]
+                # --- LÓGICA DE DETECCIÓN DE DUPLICADOS ---
+                q_names = [p.split(" ", 1)[-1] for p in q_raw]
+                c_names = [p.split(" ", 1)[-1] for p in c_raw]
+                s_names = [p.split(" ", 1)[-1] for p in s_raw]
                 
-                hay_error = False
-                if comprobar_duplicados(q_nombres):
-                    st.error("❌ Has repetido pilotos en la Clasificación.")
-                    hay_error = True
-                if comprobar_duplicados(c_nombres):
-                    st.error("❌ Has repetido pilotos en la Carrera.")
-                    hay_error = True
-                if es_sprint and comprobar_duplicados(s_nombres):
-                    st.error("❌ Has repetido pilotos en la Sprint.")
-                    hay_error = True
+                hay_duplicados = False
+                if comprobar_duplicados(q_names):
+                    st.error("❌ Error: Has repetido pilotos en el Top 5 de Clasificación.")
+                    hay_duplicados = True
+                if comprobar_duplicados(c_names):
+                    st.error("❌ Error: Has repetido pilotos en el Top 5 de Carrera.")
+                    hay_duplicados = True
+                if es_sprint and comprobar_duplicados(s_names):
+                    st.error("❌ Error: Has repetido pilotos en la Sprint.")
+                    hay_duplicados = True
 
-                if st.form_submit_button("💾 Guardar Todo", disabled=hay_error):
-                    if "- Seleccionar -" in q_nombres + c_nombres + [alo, sai, saf, red]:
-                        st.error("⚠️ Rellena todos los campos.")
+                # El botón se bloquea automáticamente si hay duplicados
+                if st.form_submit_button("💾 Guardar Todo", disabled=hay_duplicados):
+                    if "- Seleccionar -" in q_names + c_names + [alo, sai, saf, red]:
+                        st.error("⚠️ Por favor, rellena todos los campos antes de guardar.")
                     else:
                         data = []
-                        for i, v in enumerate(q_nombres): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
-                        for i, v in enumerate(s_nombres): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
-                        for i, v in enumerate(c_nombres): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
-                        data.extend([{"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": alo},
-                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": sai},
-                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": saf},
-                                     {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": red}])
+                        for i, v in enumerate(q_names): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"Q{i+1}", "Valor": v})
+                        for i, v in enumerate(s_names): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"S{i+1}", "Valor": v})
+                        for i, v in enumerate(c_names): data.append({"Usuario": st.session_state.user, "GP": gp_sel, "Variable": f"C{i+1}", "Valor": v})
+                        data.extend([
+                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Alonso", "Valor": alo},
+                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Sainz", "Valor": sai},
+                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "Safety", "Valor": saf},
+                            {"Usuario": st.session_state.user, "GP": gp_sel, "Variable": "RedFlag", "Valor": red}
+                        ])
                         df_p = pd.concat([df_p[~((df_p['Usuario'] == st.session_state.user) & (df_p['GP'] == gp_sel))], pd.DataFrame(data)])
                         conn.update(worksheet="Predicciones", data=df_p)
-                        st.success("✅ ¡Guardado!")
+                        st.success("✅ ¡Tus apuestas han sido registradas!")
 
     with tab2:
         # --- ESTILOS CSS PEDESTAL + RACE CONTROL ---
@@ -463,53 +468,57 @@ else:
     with tab3:
         st.header("🏆 Mundial de Temporada")
         if st.session_state.rol == 'admin':
-            st.warning("⚠️ Los administradores no participan.")
+            st.warning("⚠️ Los administradores no participan en el Mundial.")
         elif MUNDIAL_BLOQUEADO:
-            st.info("🔒 Mercado cerrado.")
-            df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
-            st.dataframe(df_u_temp[['Variable', 'Valor']], use_container_width=True, hide_index=True)
+            st.info("🔒 El mercado de fichajes está cerrado. Esta es tu apuesta:")
+            df_u_mundial = df_temp[df_temp['Usuario'] == st.session_state.user]
+            st.dataframe(df_u_mundial[['Variable', 'Valor']], use_container_width=True, hide_index=True)
         else:
-            df_u_temp = df_temp[df_temp['Usuario'] == st.session_state.user]
+            df_u_mundial = df_temp[df_temp['Usuario'] == st.session_state.user]
             
             with st.form("form_mundial"):
                 c1, c2 = st.columns(2)
                 with c1:
                     st.subheader("👤 Top Pilotos")
-                    p_res_raw = []
+                    p_mundial_raw = []
                     for i in range(22):
-                        v_actual = df_u_temp[df_u_temp['Variable'] == f"P{i+1}"]['Valor'].values
-                        idx = get_idx_emoji(v_actual[0]) if len(v_actual)>0 else 0
-                        p_res_raw.append(st.selectbox(f"P{i+1}", PILOTOS_CON_EMOJI, index=idx, key=f"m_p_{i}"))
+                        v_actual = df_u_mundial[df_u_mundial['Variable'] == f"P{i+1}"]['Valor'].values
+                        idx = get_idx_emoji(v_actual[0]) if len(v_actual) > 0 else 0
+                        p_mundial_raw.append(st.selectbox(f"P{i+1}", PILOTOS_CON_EMOJI, index=idx, key=f"m_p_{i}"))
+                
                 with c2:
                     st.subheader("🏎️ Top Equipos")
-                    e_res = []
+                    e_mundial = []
                     for i in range(11):
-                        v_actual = df_u_temp[df_u_temp['Variable'] == f"E{i+1}"]['Valor'].values
-                        idx = (EQUIPOS_2026.index(v_actual[0])+1) if (len(v_actual)>0 and v_actual[0] in EQUIPOS_2026) else 0
-                        e_res.append(st.selectbox(f"E{i+1}", ["- Seleccionar -"] + EQUIPOS_2026, index=idx, key=f"m_e_{i}"))
+                        v_actual = df_u_mundial[df_u_mundial['Variable'] == f"E{i+1}"]['Valor'].values
+                        idx_e = (OPCIONES_EQUIPOS.index(v_actual[0])) if (len(v_actual) > 0 and v_actual[0] in OPCIONES_EQUIPOS) else 0
+                        e_mundial.append(st.selectbox(f"E{i+1}", OPCIONES_EQUIPOS, index=idx_e, key=f"m_e_{i}"))
 
-                # Validación
-                p_nombres = [p.split(" ", 1)[-1] for p in p_res_raw]
-                error_m = False
-                if comprobar_duplicados(p_nombres):
-                    st.error("❌ Hay pilotos repetidos en tu mundial.")
-                    error_m = True
-                if comprobar_duplicados(e_res):
-                    st.error("❌ Hay equipos repetidos en tu mundial.")
-                    error_m = True
+                # Validación de nombres limpios
+                p_names_m = [p.split(" ", 1)[-1] for p in p_mundial_raw]
+                
+                error_mundial = False
+                if comprobar_duplicados(p_names_m):
+                    st.error("❌ Tienes pilotos repetidos en tu clasificación del Mundial.")
+                    error_mundial = True
+                if comprobar_duplicados(e_mundial):
+                    st.error("❌ Tienes escuderías repetidas en tu clasificación del Mundial.")
+                    error_mundial = True
 
-                if st.form_submit_button("💾 GUARDAR MUNDIAL", disabled=error_m):
-                    if "- Seleccionar -" in p_nombres or "- Seleccionar -" in e_res:
-                        st.error("⚠️ Completa toda la parrilla.")
+                if st.form_submit_button("💾 Guardar Mundial", disabled=error_mundial):
+                    if "- Seleccionar -" in p_names_m or "- Seleccionar -" in e_mundial:
+                        st.error("⚠️ Debes completar las 22 posiciones de pilotos y 11 de equipos.")
                     else:
                         m_data = []
-                        for i, v in enumerate(p_nombres): m_data.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
-                        for i, v in enumerate(e_res): m_data.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
+                        for i, v in enumerate(p_names_m): 
+                            m_data.append({"Usuario": st.session_state.user, "Variable": f"P{i+1}", "Valor": v})
+                        for i, v in enumerate(e_mundial): 
+                            m_data.append({"Usuario": st.session_state.user, "Variable": f"E{i+1}", "Valor": v})
+                        
                         df_temp = pd.concat([df_temp[df_temp['Usuario'] != st.session_state.user], pd.DataFrame(m_data)])
                         conn.update(worksheet="Temporada", data=df_temp)
-                        st.success("✅ Mundial guardado.")
-
-
+                        st.success("✅ ¡Tu clasificación mundial ha sido guardada!")
+                        
     with tab4:
         if st.session_state.rol == 'admin':
             adm_gp, adm_final, adm_fechas = st.tabs(["🏁 Resultados GP", "🌎 Mundial Final", "📅 Fechas Límite"])
